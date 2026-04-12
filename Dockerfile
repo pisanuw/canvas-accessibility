@@ -14,7 +14,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY fixes/ ./fixes/
 COPY webapp/ ./webapp/
 COPY ally_api.py .
-COPY canvas_accessibility.py .
 
 EXPOSE 10000
 

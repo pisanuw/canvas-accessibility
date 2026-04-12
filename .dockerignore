@@ -1,0 +1,15 @@
+archive/
+backups/
+*.env
+.env
+canvas-token.txt
+ally-token.txt
+ally_decorative_cache.json
+webapp/admin_log.json
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.git/
+*.imscc
