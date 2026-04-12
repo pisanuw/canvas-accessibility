@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: uw-canvas-accessibility
+    env: docker
+    plan: starter           # $7/month — removes 50s timeout, keeps service awake
+    region: oregon
+
+    dockerfilePath: ./Dockerfile
+
+    envVars:
+      - key: FLASK_SECRET_KEY
+        generateValue: true   # Render auto-generates a random value
+
+    healthCheckPath: /health

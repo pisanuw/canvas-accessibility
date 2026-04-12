@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}Step 5 — Report{% endblock %}
+
+{% block content %}
+<div class="steps">
+  <div class="step done"><div class="step-num">&#10003;</div><div class="step-name">Course</div></div>
+  <div class="step-line"></div>
+  <div class="step done"><div class="step-num">&#10003;</div><div class="step-name">Backup</div></div>
+  <div class="step-line"></div>
+  <div class="step done"><div class="step-num">&#10003;</div><div class="step-name">Credentials</div></div>
+  <div class="step-line"></div>
+  <div class="step done"><div class="step-num">&#10003;</div><div class="step-name">Confirm</div></div>
+  <div class="step-line"></div>
+  <div class="step done"><div class="step-num">&#10003;</div><div class="step-name">Running</div></div>
+  <div class="step-line"></div>
+  <div class="step active"><div class="step-num">6</div><div class="step-name">Report</div></div>
+</div>
+
+{% if not result.get('success') %}
+  <!-- Error result -->
+  <div class="card">
+    <h2>Fix Run Failed</h2>
+    <div class="notice notice-error mt-8">
+      {{ result.get('error', 'An unknown error occurred.') }}
+    </div>
+    <div class="btn-group">
+      <a href="{{ url_for('restart') }}" class="btn btn-primary">Try Again</a>
+    </div>
+  </div>
+
+{% else %}
+  <!-- Success result -->
+  <div class="card">
+    <h2>Accessibility Report</h2>
+    <p class="desc">
+      <strong>{{ result.course_name }}</strong> &nbsp;&middot;&nbsp; Course {{ result.course_id }}
+      &nbsp;&middot;&nbsp; Completed {{ result.completed_at }}
+      {% if result.has_ai %}&nbsp;&middot;&nbsp; AI-assisted{% endif %}
+    </p>
+
+    <!-- Before / After scores -->
+    <div class="score-grid">
+      <div class="score-card sc-before">
+        <div class="sc-label">Issues Before</div>
+        <div class="sc-num">{{ result.before }}</div>
+      </div>
+      {% if result.get('ally_async') %}
+      <div class="score-card" style="background:#eff6ff; border-color:#93c5fd;">
+        <div class="sc-label">Issues After</div>
+        <div class="sc-num" style="font-size:1rem; padding-top:10px; color:#2563eb;">
+          Re-check Ally<br>in ~1–2 hrs
+        </div>
+      </div>
+      {% else %}
+      <div class="score-card sc-after">
+        <div class="sc-label">Issues After</div>
+        <div class="sc-num">{{ result.after }}</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Improvement banner -->
+    {% if result.get('ally_async') %}
+      {% set total_changes = result.summary | sum(attribute='changes') %}
+      <div class="notice" style="background:#eff6ff; border-color:#93c5fd;">
+        <strong>Fixes applied — Ally re-scores asynchronously.</strong><br>
+        {{ total_changes }} change(s) were made across your course files.
+        Ally typically updates scores within 1–2 hours.
+        Check the
+        <a href="https://canvas.uw.edu/courses/{{ result.course_id }}/external_tools/148172"
+           target="_blank" rel="noopener">Ally dashboard</a>
+        after that to see the updated issue count.
+      </div>
+    {% elif result.pct_improvement > 0 %}
+      <div class="improve-banner">
+        <div class="pct">{{ result.pct_improvement }}% improvement</div>
+        <div class="label">
+          {{ result.before - result.after }} issues resolved out of {{ result.before }} detected
+        </div>
+      </div>
+    {% elif result.before == 0 %}
+      <div class="improve-banner">
+        <div class="pct">&#10003; Already clean</div>
+        <div class="label">No accessibility issues were detected in this course.</div>
+      </div>
+    {% else %}
+      <div class="notice notice-warn" style="text-align:center;">
+        <strong>{{ result.after }} issues remain</strong> — some require manual intervention
+        (e.g. video captions, scanned PDFs, color contrast).
+      </div>
+    {% endif %}
+
+    <!-- Fix breakdown table -->
+    <div class="section-title">Fixes Applied by Content Type</div>
+    <table class="fix-table">
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Items Scanned</th>
+          <th>Changes Made</th>
+          <th>Files Updated</th>
+          <th>Errors</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in result.summary %}
+        <tr>
+          <td><strong>{{ row.label }}</strong></td>
+          <td>{{ row.items }}</td>
+          <td>
+            {% if row.changes > 0 %}
+              <span class="badge badge-green">{{ row.changes }}</span>
+            {% else %}
+              <span class="badge badge-gray">0</span>
+            {% endif %}
+          </td>
+          <td>{{ row.updated }}</td>
+          <td>
+            {% if row.errors > 0 %}
+              <span class="badge badge-red">{{ row.errors }}</span>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- What's not fixed notice -->
+    {% if not result.get('ally_async') and result.after > 0 %}
+    <div class="section-title">What Remains</div>
+    <div class="notice notice-warn">
+      <strong>Issues that require manual attention:</strong>
+      <ul style="margin-top:8px; padding-left:18px; line-height:2;">
+        <li>Scanned PDFs (no machine-readable text) — need OCR or replacement</li>
+        <li>Video captions — must be added through YouTube, Kaltura, or Canvas Media</li>
+        <li>Color contrast — requires visual design changes</li>
+        <li>Complex PDF tag structure — requires Adobe Acrobat or specialist tools</li>
+        {% if not result.has_ai %}
+        <li>Image alt text, slide titles — re-run with an Anthropic API key for AI-powered fixes</li>
+        {% endif %}
+      </ul>
+    </div>
+    {% endif %}
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:24px;">
+      <a href="{{ url_for('rerun') }}" class="btn btn-secondary">Fix Other Issues for This Course</a>
+      <a href="{{ url_for('restart') }}" class="btn btn-secondary">Fix Another Course</a>
+    </div>
+    <div style="text-align:center; margin-top:12px;">
+      <a href="{{ url_for('report_download', job_id=result.job_id) }}"
+         class="btn btn-primary" download>&#8595; Download Full Report</a>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

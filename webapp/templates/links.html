@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Broken Link Check{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h2>Broken Link Check</h2>
+  <p class="desc" style="margin-bottom:16px;">
+    Checking all Canvas pages in <strong>{{ course_name }}</strong> for broken external links.
+    Each link is tested with a HEAD request (up to 30 per page, 5s timeout).
+    Broken links will have their <code>href</code> replaced with <code>#</code> and their text annotated.
+    <br>Do not close this tab.
+  </p>
+
+  <!-- Counters -->
+  <div class="counters">
+    <div class="counter-box">
+      <div class="c-label">Pages Checked</div>
+      <div class="c-val" id="pages-count">0</div>
+    </div>
+    <div class="counter-box">
+      <div class="c-label">Broken Links Found</div>
+      <div class="c-val" id="broken-count">0</div>
+    </div>
+    <div class="counter-box">
+      <div class="c-label">Status</div>
+      <div class="c-val" id="status-text" style="font-size:.95rem;padding-top:4px;">
+        <span class="spinner"></span> Running
+      </div>
+    </div>
+  </div>
+
+  <!-- Terminal output -->
+  <div class="term-wrap">
+    <div class="term-label">Progress</div>
+    <div class="terminal" id="terminal">Connecting…&#10;</div>
+  </div>
+
+  <!-- Error banner -->
+  <div id="error-banner" class="notice notice-error hidden">
+    <strong>Error:</strong> <span id="error-text"></span><br><br>
+    <a href="{{ url_for('report') }}">&#8592; Back to Report</a>
+  </div>
+
+  <!-- Done panel (hidden until complete) -->
+  <div id="done-panel" class="hidden">
+    <div id="done-banner"></div>
+    <div class="btn-group" style="margin-top:16px;">
+      <a href="{{ url_for('report') }}" class="btn btn-secondary">&larr; Back to Report</a>
+      <a href="{{ url_for('restart') }}" class="btn btn-secondary">Fix Another Course</a>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var terminal   = document.getElementById('terminal');
+  var pagesEl    = document.getElementById('pages-count');
+  var brokenEl   = document.getElementById('broken-count');
+  var statusEl   = document.getElementById('status-text');
+  var errBanner  = document.getElementById('error-banner');
+  var errText    = document.getElementById('error-text');
+  var donePanel  = document.getElementById('done-panel');
+  var doneBanner = document.getElementById('done-banner');
+
+  var totalBroken = 0;
+  var totalPages  = 0;
+
+  function append(html) {
+    terminal.insertAdjacentHTML('beforeend', html);
+    terminal.scrollTop = terminal.scrollHeight;
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  var es = new EventSource('/links-stream');
+
+  es.onmessage = function (e) {
+    var msg = JSON.parse(e.data);
+    if (msg.type === 'heartbeat') return;
+
+    if (msg.type === 'log') {
+      var line = msg.message;
+      var cls = 'log';
+      if (line.startsWith('──') || line.startsWith('--')) cls = 't-sep';
+      else if (line.includes('BROKEN')) cls = 't-err';
+      else if (line.includes('No broken') || line.includes('No changes')) cls = 't-dim';
+      else if (line.includes('Updated') || line.includes('fixed')) cls = 't-good';
+      append('<span class="' + cls + '">' + escHtml(line) + '\n</span>');
+    }
+
+    else if (msg.type === 'page') {
+      totalPages += 1;
+      pagesEl.textContent = totalPages;
+    }
+
+    else if (msg.type === 'broken') {
+      totalBroken += msg.count;
+      brokenEl.textContent = totalBroken;
+    }
+
+    else if (msg.type === 'done') {
+      statusEl.innerHTML = '&#10003; Done';
+      es.close();
+      donePanel.classList.remove('hidden');
+      if (totalBroken === 0) {
+        doneBanner.innerHTML =
+          '<div class="improve-banner"><div class="pct">&#10003; No broken links</div>' +
+          '<div class="label">All external links on ' + totalPages + ' page(s) are reachable.</div></div>';
+      } else {
+        doneBanner.innerHTML =
+          '<div class="improve-banner"><div class="pct">' + totalBroken + ' broken link(s) fixed</div>' +
+          '<div class="label">Across ' + totalPages + ' page(s). Broken hrefs replaced with # and text annotated.</div></div>';
+      }
+    }
+
+    else if (msg.type === 'error') {
+      append('<span class="t-err">\n&#10007; ERROR: ' + escHtml(msg.message) + '\n</span>');
+      statusEl.innerHTML = '&#10007; Error';
+      errText.textContent = msg.message;
+      errBanner.classList.remove('hidden');
+      es.close();
+    }
+  };
+
+  es.onerror = function () {
+    append('<span class="t-dim">Connection interrupted — retrying…\n</span>');
+  };
+})();
+</script>
+{% endblock %}

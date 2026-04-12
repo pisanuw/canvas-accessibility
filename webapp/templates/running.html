@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Step 4 — Running Fixes{% endblock %}
+
+{% block content %}
+<div class="steps">
+  <div class="step done"><div class="step-num">&#10003;</div><div class="step-name">Course</div></div>
+  <div class="step-line"></div>
+  <div class="step done"><div class="step-num">&#10003;</div><div class="step-name">Backup</div></div>
+  <div class="step-line"></div>
+  <div class="step done"><div class="step-num">&#10003;</div><div class="step-name">Credentials</div></div>
+  <div class="step-line"></div>
+  <div class="step done"><div class="step-num">&#10003;</div><div class="step-name">Confirm</div></div>
+  <div class="step-line"></div>
+  <div class="step active"><div class="step-num">5</div><div class="step-name">Running</div></div>
+  <div class="step-line"></div>
+  <div class="step"><div class="step-num">6</div><div class="step-name">Report</div></div>
+</div>
+
+<div class="card">
+  <h2>Running Fixes</h2>
+  <p class="desc" style="margin-bottom:16px;">
+    Running accessibility fixes on
+    <strong>{{ course_name }}</strong> (ID: {{ course_id }}).
+    {% if has_ai %}AI-assisted fixes are enabled.{% else %}Running without AI (no Anthropic key).{% endif %}
+    <br>Do not close this tab.
+  </p>
+
+  <!-- Live counters -->
+  <div class="counters">
+    <div class="counter-box c-before">
+      <div class="c-label">Issues Before</div>
+      <div class="c-val" id="before-count">—</div>
+    </div>
+    <div class="counter-box c-after">
+      <div class="c-label">Issues After</div>
+      <div class="c-val" id="after-count">—</div>
+    </div>
+    <div class="counter-box">
+      <div class="c-label">Status</div>
+      <div class="c-val" id="status-text" style="font-size:.95rem; padding-top:4px;">
+        <span class="spinner"></span> Running
+      </div>
+    </div>
+  </div>
+
+  <!-- Terminal output -->
+  <div class="term-wrap">
+    <div class="term-label">Progress</div>
+    <div class="terminal" id="terminal">Connecting…&#10;</div>
+  </div>
+
+  <!-- Error banner (hidden until error) -->
+  <div id="error-banner" class="notice notice-error hidden">
+    <strong>Error:</strong> <span id="error-text"></span><br><br>
+    <a href="{{ url_for('restart') }}">&#8592; Start over</a>
+  </div>
+</div>
+
+<script>
+(function () {
+  const terminal   = document.getElementById('terminal');
+  const beforeEl   = document.getElementById('before-count');
+  const afterEl    = document.getElementById('after-count');
+  const statusEl   = document.getElementById('status-text');
+  const errBanner  = document.getElementById('error-banner');
+  const errText    = document.getElementById('error-text');
+
+  function append(html) {
+    terminal.insertAdjacentHTML('beforeend', html);
+    terminal.scrollTop = terminal.scrollHeight;
+  }
+
+  function setStatus(html) {
+    statusEl.innerHTML = html;
+  }
+
+  const es = new EventSource('/stream');
+
+  es.onmessage = function (e) {
+    const msg = JSON.parse(e.data);
+
+    if (msg.type === 'heartbeat') return;
+
+    if (msg.type === 'log') {
+      const line = msg.message;
+      let cls = 'log';
+      if (line.startsWith('──') || line.startsWith('--')) cls = 't-sep';
+      else if (line.startsWith('  No changes')) cls = 't-dim';
+      else if (line.startsWith('  Updated') || line.startsWith('  Re-upload')) cls = 't-good';
+      else if (line.includes('ERROR')) cls = 't-err';
+      append('<span class="' + cls + '">' + escHtml(line) + '\n</span>');
+    }
+
+    else if (msg.type === 'before') {
+      beforeEl.textContent = msg.count;
+      append('<span class="t-good">&#9658; Before scan complete: ' + msg.count + ' issues found\n</span>');
+    }
+
+    else if (msg.type === 'after') {
+      afterEl.textContent = msg.count;
+      append('<span class="t-good">&#9658; After scan complete: ' + msg.count + ' issues remaining\n</span>');
+    }
+
+    else if (msg.type === 'done') {
+      append('<span class="t-good">\n&#10003; All fixes applied. Loading report…\n</span>');
+      setStatus('&#10003; Done');
+      es.close();
+      setTimeout(function () { window.location.href = '/report'; }, 1800);
+    }
+
+    else if (msg.type === 'error') {
+      append('<span class="t-err">\n&#10007; ERROR: ' + escHtml(msg.message) + '\n</span>');
+      setStatus('&#10007; Error');
+      errText.textContent = msg.message;
+      errBanner.classList.remove('hidden');
+      es.close();
+    }
+
+    else if (msg.type === 'busy') {
+      es.close();
+      window.location.href = '/busy';
+    }
+  };
+
+  es.onerror = function () {
+    // Browser will auto-retry SSE; just show a note
+    append('<span class="t-dim">Connection interrupted — retrying…\n</span>');
+  };
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+})();
+</script>
+{% endblock %}

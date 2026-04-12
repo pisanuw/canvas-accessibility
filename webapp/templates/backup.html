@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Step 2 — Backup Confirmation{% endblock %}
+
+{% block content %}
+<div class="steps">
+  <div class="step done"><div class="step-num">&#10003;</div><div class="step-name">Course</div></div>
+  <div class="step-line"></div>
+  <div class="step active"><div class="step-num">2</div><div class="step-name">Backup</div></div>
+  <div class="step-line"></div>
+  <div class="step"><div class="step-num">3</div><div class="step-name">Credentials</div></div>
+  <div class="step-line"></div>
+  <div class="step"><div class="step-num">4</div><div class="step-name">Confirm</div></div>
+  <div class="step-line"></div>
+  <div class="step"><div class="step-num">5</div><div class="step-name">Running</div></div>
+  <div class="step-line"></div>
+  <div class="step"><div class="step-num">6</div><div class="step-name">Report</div></div>
+</div>
+
+<div class="card">
+  <h2>Before You Continue</h2>
+  <p class="desc">
+    This tool will modify files and pages inside your Canvas course
+    (course ID: <strong>{{ course_id }}</strong>).
+    While changes are designed to be safe and non-destructive, we strongly
+    recommend having a full backup before proceeding.
+  </p>
+
+  {% if error %}
+    <div class="notice notice-error">{{ error }}</div>
+  {% endif %}
+
+  <div class="notice notice-warn">
+    <strong>&#9888; Important — please read before continuing</strong><br>
+    This tool will overwrite existing Word, PowerPoint, and PDF files with
+    updated versions. Canvas keeps version history, but restoring individual
+    files requires manual effort.
+  </div>
+
+  <p style="font-size:.9rem; margin-bottom:12px;">
+    Please confirm all of the following:
+  </p>
+
+  <ul class="checklist">
+    <li>
+      <span class="check">&#9679;</span>
+      I have exported the full course content from
+      <strong>Canvas &rarr; Settings &rarr; Export Course Content</strong>
+      and saved the .imscc file locally.
+    </li>
+    <li>
+      <span class="check">&#9679;</span>
+      I understand that this tool will modify files and pages in the course.
+    </li>
+    <li>
+      <span class="check">&#9679;</span>
+      I understand that AI-generated content (alt text, titles) should be
+      reviewed for accuracy after the tool runs.
+    </li>
+  </ul>
+
+  <form method="POST">
+    <div class="checkbox-row" style="border:none; padding:0; margin-top:20px;">
+      <input type="checkbox" id="confirmed" name="confirmed" value="1" required>
+      <label for="confirmed">
+        I confirm that I have a local backup of this course and I understand the above.
+      </label>
+    </div>
+    <div class="btn-group">
+      <a href="{{ url_for('course') }}" class="btn btn-secondary btn-back">&larr; Back</a>
+      <button type="submit" class="btn btn-primary">I Have a Backup &rarr;</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

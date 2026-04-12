@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Canvas Accessibility Fixer{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Canvas Accessibility Fixer</h1>
+    </div>
+    {% if session.get('authenticated') %}
+      <a class="signout" href="{{ url_for('logout') }}">Sign out</a>
+    {% endif %}
+  </header>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    Canvas Accessibility Fixer &nbsp;&middot;&nbsp;
+    Questions? <a href="mailto:yusuf.pisan@gmail.com">yusuf.pisan@gmail.com</a>
+  </footer>
+</body>
+</html>

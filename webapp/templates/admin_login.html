@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Admin Login{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:400px; margin:60px auto;">
+  <h2>Admin Access</h2>
+  <p class="desc">Sign in with your admin credentials to view the run log.</p>
+
+  {% if error %}
+    <div class="notice notice-error">{{ error }}</div>
+  {% endif %}
+
+  <form method="POST">
+    <div class="form-group">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" autocomplete="username" required>
+    </div>
+    <div class="form-group" style="margin-top:16px;">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" autocomplete="current-password" required>
+    </div>
+    <div class="btn-group" style="margin-top:24px;">
+      <button type="submit" class="btn btn-primary">Sign In</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

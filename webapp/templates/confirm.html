@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+{% block title %}Step 4 — Select Fixes{% endblock %}
+
+{% block content %}
+<div class="steps">
+  <div class="step done"><div class="step-num">&#10003;</div><div class="step-name">Course</div></div>
+  <div class="step-line"></div>
+  <div class="step done"><div class="step-num">&#10003;</div><div class="step-name">Backup</div></div>
+  <div class="step-line"></div>
+  <div class="step done"><div class="step-num">&#10003;</div><div class="step-name">Credentials</div></div>
+  <div class="step-line"></div>
+  <div class="step active"><div class="step-num">4</div><div class="step-name">Confirm</div></div>
+  <div class="step-line"></div>
+  <div class="step"><div class="step-num">5</div><div class="step-name">Running</div></div>
+  <div class="step-line"></div>
+  <div class="step"><div class="step-num">6</div><div class="step-name">Report</div></div>
+</div>
+
+<div class="card">
+  <h2>Select Fixes &amp; Start</h2>
+  <p class="desc">
+    Running fixes on <strong>{{ course_name }}</strong> (ID: {{ course_id }}).
+  </p>
+
+  <!-- Ally scan results panel -->
+  <div id="scan-loading" class="notice notice-warn" style="text-align:center;">
+    <span class="spinner"></span> Connecting to Ally and fetching issue count&hellip;
+  </div>
+
+  <div id="scan-results" style="display:none;">
+    <div class="score-grid" style="margin-bottom:0;">
+      <div class="score-card sc-before">
+        <div class="sc-label">Current Issues</div>
+        <div class="sc-num" id="issue-count">&mdash;</div>
+      </div>
+      <div class="score-card" style="background:#f0f9ff; border:1px solid #bae6fd;">
+        <div class="sc-label">Ally Score</div>
+        <div class="sc-num" id="score-pct" style="font-size:1.5rem;">&mdash;</div>
+      </div>
+      <div class="score-card" style="background:#f0f9ff; border:1px solid #bae6fd;">
+        <div class="sc-label">Course Code</div>
+        <div class="sc-num" id="course-code" style="font-size:1rem; padding-top:6px;">&mdash;</div>
+      </div>
+    </div>
+    <p id="lib-ref-note" style="display:none; font-size:.8rem; color:var(--text-muted); margin:6px 0 0;">
+      <span id="lib-ref-text"></span>
+      LibraryReference issues are excluded — they are Ally&rsquo;s own integration flag, not real accessibility defects.
+    </p>
+
+    <div id="scan-error" class="notice notice-error hidden" style="margin-top:16px;">
+      <strong>Ally scan failed:</strong> <span id="scan-error-text"></span><br>
+      <small>You can still proceed — before/after counts will not be available.</small>
+    </div>
+  </div>
+
+  <!-- Fix selector form -->
+  <form id="confirm-form" method="POST" style="margin-top:24px;">
+
+    <div class="fix-selector-header">
+      <span style="font-weight:600; font-size:.95rem;">Select fixes to apply</span>
+      <div class="fix-selector-actions">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="selectAll()">Select All</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="clearAll()">Clear All</button>
+      </div>
+    </div>
+
+    {% if not has_ai %}
+    <div class="notice notice-warn" style="margin:8px 0 16px; font-size:.85rem;">
+      No Anthropic API key provided — AI-assisted fixes are unavailable.
+      Enter a key in Step 3 to enable them.
+    </div>
+    {% endif %}
+
+    <!-- ── Canvas HTML Pages ───────────────────────────────────────── -->
+    <div class="fix-group">
+      <label class="fix-group-header">
+        <input type="checkbox" class="cat-cb" id="cat-html"
+               onchange="toggleCat('html', this.checked)">
+        <span class="fix-group-title">Canvas HTML Pages</span>
+      </label>
+      <div class="fix-group-items" id="items-html">
+        <label class="fix-item"><input type="checkbox" name="fix" value="html_empty_heading"         class="item-html" checked onchange="syncCat('html')"> Empty headings</label>
+        <label class="fix-item"><input type="checkbox" name="fix" value="html_headings_start_at_one" class="item-html" checked onchange="syncCat('html')"> Headings start at H1 (adds placeholder)</label>
+        <label class="fix-item"><input type="checkbox" name="fix" value="html_heading_order"         class="item-html" checked onchange="syncCat('html')"> Heading order</label>
+        <label class="fix-item"><input type="checkbox" name="fix" value="html_headings_presence"     class="item-html" checked onchange="syncCat('html')"> Heading presence</label>
+        <label class="fix-item"><input type="checkbox" name="fix" value="html_table_headers"    class="item-html" checked onchange="syncCat('html')"> Table headers</label>
+        <label class="fix-item"><input type="checkbox" name="fix" value="html_table_captions"   class="item-html" checked onchange="syncCat('html')"> Table captions</label>
+        <label class="fix-item"><input type="checkbox" name="fix" value="html_lists"            class="item-html" checked onchange="syncCat('html')"> Manual lists &rarr; proper lists</label>
+        <label class="fix-item"><input type="checkbox" name="fix" value="html_color_contrast"   class="item-html" checked onchange="syncCat('html')"> Color contrast</label>
+        <label class="fix-item"><input type="checkbox" name="fix" value="html_meta"             class="item-html" checked onchange="syncCat('html')"> HTML language &amp; title metadata</label>
+        {% if has_ai %}
+        <label class="fix-item"><input type="checkbox" name="fix" value="html_image_alt"             class="item-html" checked onchange="syncCat('html')"> Image alt text <span class="badge badge-purple">AI</span></label>
+        <label class="fix-item"><input type="checkbox" name="fix" value="html_links"                class="item-html" checked onchange="syncCat('html')"> Link text <span class="badge badge-purple">AI</span></label>
+        {% else %}
+        <label class="fix-item fix-item-disabled"><input type="checkbox" disabled> Image alt text <span class="badge badge-purple">AI</span> <span class="fix-disabled-note">— requires Anthropic key</span></label>
+        <label class="fix-item"><input type="checkbox" name="fix" value="html_image_alt_placeholder" class="item-html" checked onchange="syncCat('html')"> Image alt text (placeholder for instructor review)</label>
+        <label class="fix-item fix-item-disabled"><input type="checkbox" disabled> Link text <span class="badge badge-purple">AI</span> <span class="fix-disabled-note">— requires Anthropic key</span></label>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- ── Word Documents ─────────────────────────────────────────── -->
+    <div class="fix-group">
+      <label class="fix-group-header">
+        <input type="checkbox" class="cat-cb" id="cat-word"
+               onchange="toggleCat('word', this.checked)">
+        <span class="fix-group-title">Word Documents (.docx)</span>
+      </label>
+      <div class="fix-group-items" id="items-word">
+        <label class="fix-item"><input type="checkbox" name="fix" value="word_headings_presence"     class="item-word" checked onchange="syncCat('word')"> Heading presence</label>
+        <label class="fix-item"><input type="checkbox" name="fix" value="word_headings_start_at_one" class="item-word" checked onchange="syncCat('word')"> Headings start at H1</label>
+        <label class="fix-item"><input type="checkbox" name="fix" value="word_heading_order"         class="item-word" checked onchange="syncCat('word')"> Heading order</label>
+        <label class="fix-item"><input type="checkbox" name="fix" value="word_table_headers"         class="item-word" checked onchange="syncCat('word')"> Table headers</label>
+        <label class="fix-item"><input type="checkbox" name="fix" value="word_no_language"           class="item-word" checked onchange="syncCat('word')"> Document language</label>
+        {% if has_ai %}
+        <label class="fix-item"><input type="checkbox" name="fix" value="word_image_alt"             class="item-word" checked onchange="syncCat('word')"> Image alt text <span class="badge badge-purple">AI</span></label>
+        {% else %}
+        <label class="fix-item fix-item-disabled"><input type="checkbox" disabled> Image alt text <span class="badge badge-purple">AI</span> <span class="fix-disabled-note">— requires Anthropic key</span></label>
+        <label class="fix-item"><input type="checkbox" name="fix" value="word_image_alt_placeholder" class="item-word" checked onchange="syncCat('word')"> Image alt text (placeholder)</label>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- ── PDF Metadata ───────────────────────────────────────────── -->
+    <div class="fix-group">
+      <label class="fix-group-header">
+        <input type="checkbox" class="cat-cb" id="cat-pdfmeta"
+               onchange="toggleCat('pdfmeta', this.checked)">
+        <span class="fix-group-title">PDF Metadata</span>
+      </label>
+      <div class="fix-group-items" id="items-pdfmeta">
+        <label class="fix-item"><input type="checkbox" name="fix" value="pdf_metadata_all" class="item-pdfmeta" checked onchange="syncCat('pdfmeta')"> Title, language, and XMP tags</label>
+      </div>
+    </div>
+
+    <!-- ── PowerPoint ─────────────────────────────────────────────── -->
+    <div class="fix-group">
+      <label class="fix-group-header">
+        <input type="checkbox" class="cat-cb" id="cat-pptx"
+               onchange="toggleCat('pptx', this.checked)">
+        <span class="fix-group-title">PowerPoint (.pptx)</span>
+      </label>
+      <div class="fix-group-items" id="items-pptx">
+        <label class="fix-item"><input type="checkbox" name="fix" value="pptx_reading_order" class="item-pptx" checked onchange="syncCat('pptx')"> Reading order</label>
+        <label class="fix-item"><input type="checkbox" name="fix" value="pptx_no_language"   class="item-pptx" checked onchange="syncCat('pptx')"> Presentation language</label>
+        <label class="fix-item"><input type="checkbox" name="fix" value="pptx_slide_title"   class="item-pptx" checked onchange="syncCat('pptx')"> Slide titles</label>
+        <label class="fix-item"><input type="checkbox" name="fix" value="pptx_image_alt"     class="item-pptx" checked onchange="syncCat('pptx')"> Image alt text</label>
+        <label class="fix-item"><input type="checkbox" name="fix" value="pptx_links"         class="item-pptx" checked onchange="syncCat('pptx')"> Link descriptions</label>
+      </div>
+    </div>
+
+    <!-- ── Images via Ally ────────────────────────────────────────── -->
+    <div class="fix-group">
+      <label class="fix-group-header">
+        <input type="checkbox" class="cat-cb" id="cat-images"
+               onchange="toggleCat('images', this.checked)">
+        <span class="fix-group-title">Images (via Ally)</span>
+      </label>
+      <div class="fix-group-items" id="items-images">
+        <label class="fix-item"><input type="checkbox" name="fix" value="image_decorative" class="item-images" checked onchange="syncCat('images')"> Mark decorative images</label>
+        <label class="fix-item"><input type="checkbox" name="fix" value="image_seizure"    class="item-images" checked onchange="syncCat('images')"> Replace seizure-risk images with warning placeholder</label>
+      </div>
+    </div>
+
+    <!-- ── Slow fixes divider ─────────────────────────────────────── -->
+    <div class="slow-section-divider">
+      <span>Optional — slower fixes (unchecked by default)</span>
+    </div>
+
+    <!-- ── PDF Content ────────────────────────────────────────────── -->
+    <div class="fix-group fix-group-slow">
+      <label class="fix-group-header">
+        <input type="checkbox" class="cat-cb" id="cat-pdfcontent"
+               onchange="toggleCat('pdfcontent', this.checked)">
+        <span class="fix-group-title">PDF Content Fixes <span class="badge badge-warn">&#9200; Slow</span></span>
+      </label>
+      <div class="fix-group-items" id="items-pdfcontent">
+        <label class="fix-item"><input type="checkbox" name="fix" value="pdf_tags"                  class="item-pdfcontent" onchange="syncCat('pdfcontent')"> Accessibility tags &amp; structure</label>
+        <label class="fix-item"><input type="checkbox" name="fix" value="pdf_headings_start_at_one" class="item-pdfcontent" onchange="syncCat('pdfcontent')"> Headings start at H1</label>
+        <label class="fix-item"><input type="checkbox" name="fix" value="pdf_headings_sequential"   class="item-pdfcontent" onchange="syncCat('pdfcontent')"> Heading order</label>
+        <label class="fix-item"><input type="checkbox" name="fix" value="pdf_table_headers"         class="item-pdfcontent" onchange="syncCat('pdfcontent')"> Table headers</label>
+        <label class="fix-item"><input type="checkbox" name="fix" value="pdf_image_alt"             class="item-pdfcontent" onchange="syncCat('pdfcontent')"> Image alt text (placeholder)</label>
+        <label class="fix-item"><input type="checkbox" name="fix" value="pdf_links"                 class="item-pdfcontent" onchange="syncCat('pdfcontent')"> Link descriptions</label>
+      </div>
+    </div>
+
+    <!-- ── OCR ────────────────────────────────────────────────────── -->
+    <div class="fix-group fix-group-slow">
+      <label class="fix-group-header">
+        <input type="checkbox" class="cat-cb" id="cat-ocr"
+               onchange="toggleCat('ocr', this.checked)">
+        <span class="fix-group-title">OCR for Scanned PDFs <span class="badge badge-warn">&#9200; Very slow &amp; memory intensive</span></span>
+      </label>
+      <div class="fix-group-items" id="items-ocr">
+        <label class="fix-item fix-item-slow" style="grid-column:1/-1;">
+          <input type="checkbox" name="fix" value="pdf_scanned" class="item-ocr" onchange="syncCat('ocr')">
+          Run OCR on scanned PDFs to make text selectable and searchable
+          <span class="fix-slow-note">Each scanned PDF is rendered page-by-page. Large courses with many scanned PDFs may run out of memory on Render&rsquo;s free tier — use the CLI locally for those.</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- ── Broken Link Check ──────────────────────────────────────── -->
+    <div class="fix-group fix-group-slow">
+      <label class="fix-group-header">
+        <input type="checkbox" class="cat-cb" id="cat-brokenlinks"
+               onchange="toggleCat('brokenlinks', this.checked)">
+        <span class="fix-group-title">Broken Link Check <span class="badge badge-warn">&#9200; Slow</span></span>
+      </label>
+      <div class="fix-group-items" id="items-brokenlinks">
+        <label class="fix-item fix-item-slow" style="grid-column:1/-1;">
+          <input type="checkbox" name="fix" value="html_broken_links" class="item-brokenlinks" onchange="syncCat('brokenlinks')">
+          Check every link on every Canvas HTML page and replace broken ones with <code>#</code>
+          <span class="fix-slow-note">Makes one network request per link. Courses with many pages and links can take 10+ minutes.</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="btn-group" style="margin-top:20px;">
+      <a href="{{ url_for('credentials') }}" class="btn btn-secondary btn-back">&larr; Back</a>
+      <button type="submit" id="start-btn" class="btn btn-primary">Start Fixes &rarr;</button>
+    </div>
+  </form>
+</div>
+
+<script>
+// Sync category checkbox state from its children
+function syncCat(catId) {
+  var items   = document.querySelectorAll('.item-' + catId);
+  var cat     = document.getElementById('cat-' + catId);
+  var checked = Array.from(items).filter(function(i) { return i.checked; }).length;
+  if (checked === 0) {
+    cat.checked = false; cat.indeterminate = false;
+  } else if (checked === items.length) {
+    cat.checked = true;  cat.indeterminate = false;
+  } else {
+    cat.checked = false; cat.indeterminate = true;
+  }
+}
+
+// Toggle all children when category header is clicked
+function toggleCat(catId, checked) {
+  document.querySelectorAll('.item-' + catId).forEach(function(cb) {
+    if (!cb.disabled) cb.checked = checked;
+  });
+}
+
+function selectAll() {
+  document.querySelectorAll('.fix-group-items input[type="checkbox"]:not([disabled])').forEach(function(cb) { cb.checked = true; });
+  document.querySelectorAll('.cat-cb').forEach(function(cb) { cb.checked = true; cb.indeterminate = false; });
+}
+
+function clearAll() {
+  document.querySelectorAll('.fix-group-items input[type="checkbox"]:not([disabled])').forEach(function(cb) { cb.checked = false; });
+  document.querySelectorAll('.cat-cb').forEach(function(cb) { cb.checked = false; cb.indeterminate = false; });
+}
+
+// Initialise category checkboxes on load
+['html', 'word', 'pdfmeta', 'pptx', 'images', 'pdfcontent', 'ocr', 'brokenlinks'].forEach(syncCat);
+
+// Fetch Ally scan (non-blocking — form is usable immediately)
+(function () {
+  var loadingEl  = document.getElementById('scan-loading');
+  var resultsEl  = document.getElementById('scan-results');
+  var errEl      = document.getElementById('scan-error');
+  var errTextEl  = document.getElementById('scan-error-text');
+  var issueEl    = document.getElementById('issue-count');
+  var scoreEl    = document.getElementById('score-pct');
+  var codeEl     = document.getElementById('course-code');
+  var libNoteEl  = document.getElementById('lib-ref-note');
+  var libTextEl  = document.getElementById('lib-ref-text');
+
+  fetch('/confirm-scan')
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      loadingEl.style.display = 'none';
+      resultsEl.style.display = '';
+      if (data.error) {
+        issueEl.textContent = '?'; scoreEl.textContent = '—'; codeEl.textContent = '—';
+        errTextEl.textContent = data.error;
+        errEl.classList.remove('hidden');
+      } else {
+        issueEl.textContent = data.issue_count;
+        scoreEl.textContent = data.score_pct + '%';
+        codeEl.textContent  = data.course_code || '—';
+        if (data.lib_ref_count > 0) {
+          libTextEl.textContent = data.lib_ref_count + ' LibraryReference issues not counted. ';
+          libNoteEl.style.display = '';
+        }
+      }
+    })
+    .catch(function (err) {
+      loadingEl.style.display = 'none';
+      resultsEl.style.display = '';
+      issueEl.textContent = '?'; scoreEl.textContent = '—'; codeEl.textContent = '—';
+      errTextEl.textContent = String(err);
+      errEl.classList.remove('hidden');
+    });
+})();
+</script>
+{% endblock %}

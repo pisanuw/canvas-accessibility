@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}Step 1 — Course URL{% endblock %}
+
+{% block content %}
+<!-- Step indicator -->
+<div class="steps">
+  <div class="step active"><div class="step-num">1</div><div class="step-name">Course</div></div>
+  <div class="step-line"></div>
+  <div class="step"><div class="step-num">2</div><div class="step-name">Backup</div></div>
+  <div class="step-line"></div>
+  <div class="step"><div class="step-num">3</div><div class="step-name">Credentials</div></div>
+  <div class="step-line"></div>
+  <div class="step"><div class="step-num">4</div><div class="step-name">Confirm</div></div>
+  <div class="step-line"></div>
+  <div class="step"><div class="step-num">5</div><div class="step-name">Running</div></div>
+  <div class="step-line"></div>
+  <div class="step"><div class="step-num">6</div><div class="step-name">Report</div></div>
+</div>
+
+<div class="card">
+  <h2>What does this tool do?</h2>
+  <p class="desc">
+    This tool automatically finds and fixes common accessibility issues in your Canvas course —
+    including PDF metadata, Word and PowerPoint documents, and Canvas page HTML.
+    It uses the Canvas API with your personal token to read and update course content.
+    If you provide an Anthropic API key, it can also generate alt text for images using AI.
+  </p>
+
+  <!-- ── What it fixes ─────────────────────────────────────────────────────── -->
+  <h3 class="section-title" style="margin-top:0">Issues this tool fixes</h3>
+
+  <div class="fix-categories">
+
+    <div class="fix-category">
+      <div class="fix-category-label">Canvas Pages (HTML)</div>
+      <ul class="fix-list">
+        <li><strong>Empty headings</strong> — Removes heading tags that contain no text, which confuse screen readers.</li>
+        <li><strong>Heading order</strong> — Corrects heading levels that skip (e.g. H1 → H3) so the outline is sequential.</li>
+        <li><strong>Heading presence</strong> — Adds a heading to pages that have none, giving screen reader users a navigation landmark.</li>
+        <li><strong>Table headers</strong> — Converts the first row of data tables to proper <code>&lt;th&gt;</code> header cells.</li>
+        <li><strong>Table captions</strong> — Adds descriptive captions to tables that have none.</li>
+        <li><strong>Fake lists</strong> — Replaces lines that use manual bullet characters or numbers with proper <code>&lt;ul&gt;</code> / <code>&lt;ol&gt;</code> list markup.</li>
+        <li><strong>Color contrast</strong> — Adjusts foreground text colors that fail the WCAG AA contrast ratio against their background.</li>
+        <li><strong>Image alt text</strong> <span class="badge badge-gray">AI</span> — Generates descriptive alt text for images using an AI model (requires Anthropic key).</li>
+        <li><strong>Link text</strong> <span class="badge badge-gray">AI</span> — Rewrites non-descriptive links such as "click here" to meaningful text (requires Anthropic key).</li>
+      </ul>
+    </div>
+
+    <div class="fix-category">
+      <div class="fix-category-label">PDF Files</div>
+      <ul class="fix-list">
+        <li><strong>Document metadata</strong> — Sets the document title and language, and marks the PDF as tagged for assistive technology.</li>
+        <li><strong>Scanned PDF (OCR)</strong> — Runs optical character recognition on image-only PDFs to add a searchable, readable text layer. Capped at 10 files per run.</li>
+        <li><strong>Tag structure</strong> — Adds a minimal accessibility tag tree to untagged PDFs so screen readers can parse the content.</li>
+        <li><strong>Heading levels</strong> — Ensures headings start at H1 and do not skip levels (e.g. H1 → H3 becomes H1 → H2).</li>
+        <li><strong>Table headers</strong> — Promotes first-row table cells from TD to TH in the PDF structure tree.</li>
+        <li><strong>Image alt text</strong> — Adds a placeholder alt-text description to figure elements that have none.</li>
+        <li><strong>Link descriptions</strong> — Sets an accessible label on URL link annotations that currently have no description.</li>
+      </ul>
+    </div>
+
+    <div class="fix-category">
+      <div class="fix-category-label">Word Documents (.docx)</div>
+      <ul class="fix-list">
+        <li><strong>Heading presence &amp; order</strong> — Adds headings if absent and corrects level skips, mirroring the HTML page fixes.</li>
+        <li><strong>Table headers</strong> — Marks the first row of each table as a header row using Word's built-in table style.</li>
+        <li><strong>Document language</strong> — Sets the document language attribute so screen readers use the correct pronunciation rules.</li>
+        <li><strong>Image alt text</strong> — Generates AI alt text (with Anthropic key) or inserts a human-review placeholder if no key is provided.</li>
+      </ul>
+    </div>
+
+    <div class="fix-category">
+      <div class="fix-category-label">PowerPoint Files (.pptx)</div>
+      <ul class="fix-list">
+        <li><strong>Reading order</strong> — Reorders slide elements so tab order matches visual layout, preventing confusion for keyboard and screen reader users.</li>
+        <li><strong>Slide titles</strong> — Adds a title placeholder to slides that have none, which assistive technology uses to announce each slide.</li>
+        <li><strong>Presentation language</strong> — Sets the language on the presentation so speech synthesis uses the correct voice and rules.</li>
+        <li><strong>Image alt text</strong> — Adds a placeholder description to images that have no alt text.</li>
+        <li><strong>Link descriptions</strong> — Flags non-descriptive hyperlinks and replaces them with the destination URL as a fallback label.</li>
+      </ul>
+    </div>
+
+    <div class="fix-category">
+      <div class="fix-category-label">Images (via Ally)</div>
+      <ul class="fix-list">
+        <li><strong>Decorative images</strong> — Marks purely decorative images (logos, dividers, etc.) as decorative in Ally so screen readers skip them.</li>
+        <li><strong>Seizure-risk images</strong> — Detects and replaces flashing or high-contrast strobing images that could trigger photosensitive seizures.</li>
+      </ul>
+    </div>
+
+  </div><!-- /.fix-categories -->
+
+  <!-- ── Backup notice ──────────────────────────────────────────────────────── -->
+  <div class="notice notice-warn" style="margin-top:24px">
+    <strong>Back up your course before continuing.</strong>
+    This tool modifies Canvas pages, PDFs, Word documents, and PowerPoint files directly.
+    Changes cannot be automatically undone.
+    We strongly recommend exporting a full course backup first.
+    <div style="margin-top:10px">
+      <a href="{{ url_for('download_canvas_backup') }}" class="btn btn-secondary" style="font-size:.85rem;padding:7px 16px">
+        &#8659; Download canvas-backup.py
+      </a>
+      <span style="font-size:.82rem;color:var(--warn-text);margin-left:10px">
+        Run <code style="background:rgba(0,0,0,.06);padding:1px 5px;border-radius:3px">python3 canvas-backup.py start --all</code>
+        then <code style="background:rgba(0,0,0,.06);padding:1px 5px;border-radius:3px">python3 canvas-backup.py download</code>
+      </span>
+    </div>
+  </div>
+
+  {% if error %}
+    <div class="notice notice-error">{{ error }}</div>
+  {% endif %}
+
+  <form method="POST">
+    <div class="form-group">
+      <label for="course_url">Canvas Course URL</label>
+      <input type="url" id="course_url" name="course_url" autofocus
+             placeholder="https://canvas.uw.edu/courses/1492292"
+             value="{{ course_url }}" required>
+      <div class="hint">
+        Must start with <strong>https://canvas.uw.edu/courses/</strong>.
+        Open your course in Canvas and copy the URL from the address bar.
+      </div>
+    </div>
+
+    <div class="btn-group">
+      <button type="submit" class="btn btn-primary">Continue &rarr;</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

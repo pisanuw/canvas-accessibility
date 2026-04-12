@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environment
+path/to/venv/
+venv/
+.venv/
+env/
+
+# Secrets / credentials
+canvas-token.txt
+ally-token.txt
+canvas-accessibility-key.txt
+*.env
+.env
+
+# Ally decorative cache (tracks files already marked; avoids re-marking on re-runs)
+ally_decorative_cache.json
+
+# Archive directory
+archive/
+
+# Logs
+*.log
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Pytest / coverage
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Jupyter
+.ipynb_checkpoints/
+accessibility_report_1492292_2026-04-11_2214.html
+webapp/admin_log.json

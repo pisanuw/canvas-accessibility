@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Admin — Run Log{% endblock %}
+
+{% block content %}
+<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+  <h2 style="margin:0;">Admin — Run Log</h2>
+  <a href="{{ url_for('admin_logout') }}" class="btn btn-secondary" style="padding:6px 14px;">Sign out</a>
+</div>
+
+{% if not log %}
+  <div class="notice notice-warn">No runs recorded yet.</div>
+{% else %}
+  <div class="card" style="padding:0; overflow:hidden;">
+    <table class="fix-table" style="margin:0;">
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Course ID</th>
+          <th>Course Code / Name</th>
+          <th>Issues Before</th>
+          <th>Issues After</th>
+          <th>Improvement</th>
+          <th>Report</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in log | reverse %}
+        <tr>
+          <td>{{ entry.timestamp }}</td>
+          <td>{{ entry.course_id }}</td>
+          <td>
+            <strong>{{ entry.course_code }}</strong>
+            {% if entry.course_name and entry.course_name != entry.course_code %}
+              <br><span style="font-size:.82rem; color:#6b7280;">{{ entry.course_name }}</span>
+            {% endif %}
+          </td>
+          <td style="text-align:center;">
+            <span class="badge badge-red">{{ entry.before }}</span>
+          </td>
+          <td style="text-align:center;">
+            {% if entry.after == 0 %}
+              <span class="badge badge-green">0</span>
+            {% else %}
+              <span class="badge badge-gray">{{ entry.after }}</span>
+            {% endif %}
+          </td>
+          <td style="text-align:center;">
+            {% if entry.pct > 0 %}
+              <span class="badge badge-green">{{ entry.pct }}%</span>
+            {% elif entry.before == 0 %}
+              <span style="color:#16a34a;">&#10003; Clean</span>
+            {% else %}
+              <span class="badge badge-gray">0%</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{{ url_for('report_download', job_id=entry.job_id) }}"
+               class="btn btn-secondary"
+               style="padding:4px 10px; font-size:.8rem;"
+               download>&#8595; HTML</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p style="font-size:.8rem; color:#6b7280; margin-top:12px;">
+    {{ log | length }} run(s) recorded. Most recent first.
+  </p>
+{% endif %}
+{% endblock %}
