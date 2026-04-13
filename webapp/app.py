@@ -208,7 +208,6 @@ def course():
     if request.method == "POST":
         import re
         url = request.form.get("course_url", "").strip()
-        search_token = request.form.get("search_token", "").strip()
         if not url.startswith("https://canvas.uw.edu/courses/"):
             error = "Course URL must start with https://canvas.uw.edu/courses/"
         else:
@@ -216,11 +215,9 @@ def course():
             if not match:
                 error = "Could not find a course ID in the URL."
             else:
-                session["course_id"] = int(match.group(1))
+                session["course_id"]  = int(match.group(1))
                 session["course_url"] = url
-                # Pre-fill canvas token from search if provided (user can change it on step 3)
-                if search_token:
-                    session["canvas_token"] = search_token
+                session.pop("course_name", None)
                 for key in ("job_id", "backup_confirmed", "confirm_done",
                             "ally_token", "ally_client_id", "ally_cookie",
                             "ally_before_count", "course_code"):
@@ -235,13 +232,16 @@ def course():
 def backup():
     if "course_id" not in session:
         return redirect(url_for("course"))
+    course_id   = session["course_id"]
+    course_name = session.get("course_name", "")
     if request.method == "POST":
         if request.form.get("confirmed"):
             session["backup_confirmed"] = True
             return redirect(url_for("credentials"))
-        return render_template("backup.html", course_id=session["course_id"],
+        return render_template("backup.html", course_id=course_id,
+                               course_name=course_name,
                                error="Please check the box to confirm you have a backup.")
-    return render_template("backup.html", course_id=session["course_id"])
+    return render_template("backup.html", course_id=course_id, course_name=course_name)
 
 
 @app.route("/credentials", methods=["GET", "POST"])

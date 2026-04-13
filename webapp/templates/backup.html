@@ -18,9 +18,18 @@
 
 <div class="card">
   <h2>Before You Continue</h2>
+  {% if course_name %}
+  <p class="desc" style="font-size:1.05rem;">
+    <strong>{{ course_name }}</strong><br>
+    <span style="color:var(--text-muted); font-size:.9rem;">Course ID: {{ course_id }}</span>
+  </p>
+  {% else %}
   <p class="desc">
-    This tool will modify files and pages inside your Canvas course
-    (course ID: <strong>{{ course_id }}</strong>).
+    Course ID: <strong>{{ course_id }}</strong>
+  </p>
+  {% endif %}
+  <p class="desc">
+    This tool will modify files and pages inside your Canvas course.
     While changes are designed to be safe and non-destructive, we strongly
     recommend having a full backup before proceeding.
   </p>

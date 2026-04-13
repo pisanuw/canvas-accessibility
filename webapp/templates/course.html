@@ -112,33 +112,11 @@
   {% endif %}
 
   <form method="POST" id="course-form">
-    <input type="hidden" id="search_token" name="search_token" value="">
-
-    <!-- Course search -->
     <div class="form-group">
-      <label for="course-search-token">Canvas API Token <span style="font-size:.8rem;font-weight:400;color:var(--text-muted)">(for course search)</span></label>
-      <input type="password" id="course-search-token" autocomplete="off"
-             placeholder="10~xxxxxxxxxxxxxxxxxxxx"
-             oninput="onTokenInput(this.value)">
-      <div class="hint">Enter your token to search your courses by name, or paste a URL directly below.</div>
-    </div>
-
-    <div class="form-group" id="search-group" style="display:none">
-      <label for="course-search-input">Search Courses</label>
-      <div class="search-wrap">
-        <input type="text" id="course-search-input" autocomplete="off"
-               placeholder="Type a course name…" oninput="onSearchInput(this.value)">
-        <div class="search-dropdown" id="search-dropdown"></div>
-      </div>
-    </div>
-
-    <div class="search-divider"><span>or enter URL directly</span></div>
-
-    <div class="form-group">
-      <label for="course_url">Canvas Course URL</label>
+      <label for="course_url">Canvas Course URL <span style="color:var(--error)">*</span></label>
       <input type="url" id="course_url" name="course_url"
              placeholder="https://canvas.uw.edu/courses/1492292"
-             value="{{ course_url }}" required>
+             value="{{ course_url }}" required autofocus>
       <div class="hint">
         Must start with <strong>https://canvas.uw.edu/courses/</strong>.
         Open your course in Canvas and copy the URL from the address bar.
@@ -149,79 +127,5 @@
       <button type="submit" class="btn btn-primary">Continue &rarr;</button>
     </div>
   </form>
-
-<script>
-(function () {
-  let searchTimeout = null;
-
-  function onTokenInput(token) {
-    document.getElementById('search_token').value = token;
-    document.getElementById('search-group').style.display = token.length > 5 ? '' : 'none';
-    if (!token) closeDropdown();
-  }
-
-  function onSearchInput(q) {
-    clearTimeout(searchTimeout);
-    if (q.length < 2) { closeDropdown(); return; }
-    searchTimeout = setTimeout(function () { doSearch(q); }, 350);
-  }
-
-  function doSearch(q) {
-    const token = document.getElementById('course-search-token').value;
-    fetch('/api/course-search?q=' + encodeURIComponent(q) + '&token=' + encodeURIComponent(token))
-      .then(function (r) { return r.json(); })
-      .then(function (results) { showDropdown(results); })
-      .catch(function () { closeDropdown(); });
-  }
-
-  function showDropdown(results) {
-    const dd = document.getElementById('search-dropdown');
-    if (!results.length) {
-      dd.innerHTML = '<div class="search-dd-empty">No courses found</div>';
-      dd.style.display = '';
-      return;
-    }
-    dd.innerHTML = results.map(function (c) {
-      return '<div class="search-dd-item" data-id="' + c.id + '" data-name="' + escAttr(c.name) + '" data-code="' + escAttr(c.code) + '">'
-           + '<span class="dd-name">' + escHtml(c.name) + '</span>'
-           + '<span class="dd-code">' + escHtml(c.code) + '</span>'
-           + '</div>';
-    }).join('');
-    dd.querySelectorAll('.search-dd-item').forEach(function (item) {
-      item.addEventListener('click', function () { selectCourse(item); });
-    });
-    dd.style.display = '';
-  }
-
-  function selectCourse(item) {
-    const id   = item.dataset.id;
-    const name = item.dataset.name;
-    document.getElementById('course_url').value = 'https://canvas.uw.edu/courses/' + id;
-    document.getElementById('course-search-input').value = name;
-    closeDropdown();
-  }
-
-  function closeDropdown() {
-    const dd = document.getElementById('search-dropdown');
-    dd.style.display = 'none';
-    dd.innerHTML = '';
-  }
-
-  document.addEventListener('click', function (e) {
-    if (!e.target.closest('.search-wrap')) closeDropdown();
-  });
-
-  function escHtml(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  }
-  function escAttr(s) {
-    return String(s).replace(/"/g, '&quot;');
-  }
-
-  // Expose for inline handlers
-  window.onTokenInput  = onTokenInput;
-  window.onSearchInput = onSearchInput;
-})();
-</script>
 </div>
 {% endblock %}
