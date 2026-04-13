@@ -225,8 +225,9 @@ def credentials():
         if not request.form.get("agree_credentials"):
             error = "You must acknowledge the security notice before proceeding."
         else:
-            canvas_token  = request.form.get("canvas_token", "").strip()
-            anthropic_key = request.form.get("anthropic_key", "").strip()
+            canvas_token     = request.form.get("canvas_token", "").strip()
+            anthropic_key    = request.form.get("anthropic_key", "").strip()
+            instructor_email = request.form.get("instructor_email", "").strip()
             if not canvas_token:
                 error = "Canvas API token is required."
             else:
@@ -238,8 +239,9 @@ def credentials():
                         error = (f"Cannot access course {session['course_id']} with this token. "
                                  "Please check your token and course URL.")
                     else:
-                        session["canvas_token"]  = canvas_token
-                        session["anthropic_key"] = anthropic_key
+                        session["canvas_token"]     = canvas_token
+                        session["anthropic_key"]    = anthropic_key
+                        session["instructor_email"] = instructor_email
                         session["course_name"]   = course_info.get(
                             "name", f"Course {session['course_id']}")
                         session["course_code"]   = course_info.get(
@@ -250,7 +252,8 @@ def credentials():
                         return redirect(url_for("confirm"))
                 except Exception as e:
                     error = f"Could not connect to Canvas: {e}"
-    return render_template("credentials.html", error=error)
+    return render_template("credentials.html", error=error,
+                           instructor_email=session.get("instructor_email", ""))
 
 
 @app.route("/confirm", methods=["GET", "POST"])
@@ -320,16 +323,17 @@ def running():
 @app.route("/stream")
 @require_auth
 def stream():
-    job_id         = session.get("job_id")
-    course_id      = session.get("course_id")
-    canvas_token   = session.get("canvas_token")
-    anthropic_key  = session.get("anthropic_key", "")
-    course_name    = session.get("course_name", f"Course {course_id}")
-    course_code    = session.get("course_code", "")
-    has_ai         = bool(anthropic_key)
-    ally_token     = session.get("ally_token", "")
-    ally_client_id = session.get("ally_client_id", 5)
-    ally_cookie    = session.get("ally_cookie", "")
+    job_id           = session.get("job_id")
+    course_id        = session.get("course_id")
+    canvas_token     = session.get("canvas_token")
+    anthropic_key    = session.get("anthropic_key", "")
+    instructor_email = session.get("instructor_email", "")
+    course_name      = session.get("course_name", f"Course {course_id}")
+    course_code      = session.get("course_code", "")
+    has_ai           = bool(anthropic_key)
+    ally_token       = session.get("ally_token", "")
+    ally_client_id   = session.get("ally_client_id", 5)
+    ally_cookie      = session.get("ally_cookie", "")
     selected_fixes = session.get("selected_fixes", [])
 
     if not all([job_id, course_id, canvas_token]):
@@ -353,9 +357,22 @@ def stream():
 
         class _Capture:
             def write(self, text):
+                import re as _re
                 stripped = text.strip()
-                if stripped:
-                    msg_q.put(("log", stripped))
+                if not stripped:
+                    return
+                msg_q.put(("log", stripped))
+                # Detect section header: lines starting with ──
+                if stripped.startswith("──") or stripped.startswith("--"):
+                    label = stripped.strip("─- \t")
+                    msg_q.put(("section", {"label": label}))
+                # Detect progress line: "  Processing: name (3/28)"
+                _m = _re.search(r'\((\d+)/(\d+)\)$', stripped)
+                if _m:
+                    msg_q.put(("progress", {
+                        "current": int(_m.group(1)),
+                        "total":   int(_m.group(2)),
+                    }))
             def flush(self): pass
 
         def _run():
@@ -525,6 +542,12 @@ def stream():
                 if kind == "log":
                     yield f"data: {json.dumps({'type':'log','message':data})}\n\n"
 
+                elif kind == "section":
+                    yield f"data: {json.dumps({'type':'section','label':data['label']})}\n\n"
+
+                elif kind == "progress":
+                    yield f"data: {json.dumps({'type':'progress','current':data['current'],'total':data['total']})}\n\n"
+
                 elif kind == "before":
                     yield f"data: {json.dumps({'type':'before','count':data})}\n\n"
 
@@ -538,19 +561,20 @@ def stream():
                     pct    = 0
                     completed_at = datetime.now().strftime("%Y-%m-%d %H:%M")
                     result = {
-                        "running":         False,
-                        "success":         True,
-                        "before":          before,
-                        "after":           after,
-                        "ally_async":      True,  # flag: after count not yet meaningful
-                        "pct_improvement": pct,
-                        "course_name":     course_name,
-                        "course_id":       course_id,
-                        "course_code":     course_code,
-                        "has_ai":          has_ai,
-                        "summary":         _summarize(data["fix_results"]),
-                        "completed_at":    completed_at,
-                        "job_id":          job_id,
+                        "running":          False,
+                        "success":          True,
+                        "before":           before,
+                        "after":            after,
+                        "ally_async":       True,  # flag: after count not yet meaningful
+                        "pct_improvement":  pct,
+                        "course_name":      course_name,
+                        "course_id":        course_id,
+                        "course_code":      course_code,
+                        "has_ai":           has_ai,
+                        "instructor_email": instructor_email,
+                        "summary":          _summarize(data["fix_results"]),
+                        "completed_at":     completed_at,
+                        "job_id":           job_id,
                     }
                     result["fix_results"]  = data["fix_results"]
                     result["report_html"]  = _generate_html_report(result)
@@ -767,12 +791,23 @@ def _summarize(fix_results: dict) -> list[dict]:
         changes = sum(len(r.get("changes", [])) for r in results)
         updated = sum(1 for r in results if r.get("updated"))
         errors  = sum(1 for r in results if "error" in r)
+        detail = []
+        for r in results:
+            name = r.get("page") or r.get("file") or "—"
+            detail.append({
+                "name":    name,
+                "changes": r.get("changes", []),
+                "updated": r.get("updated", False),
+                "error":   r.get("error", ""),
+            })
         rows.append({
+            "key":     key,
             "label":   TYPE_LABELS.get(key, key),
             "items":   len(results),
             "changes": changes,
             "updated": updated,
             "errors":  errors,
+            "detail":  detail,
         })
     return rows
 
@@ -808,16 +843,28 @@ def _send_run_notification(result: dict):
     try:
         import resend
         resend.api_key = api_key
-        admin_email = os.environ.get("ADMIN_EMAIL", "")
         from_email  = os.environ.get("FROM_EMAIL",  "noreply@resend.dev")
         subject = (f"Accessibility Fix Complete: {result['course_name']} "
                    f"({result['before']} → {result['after']} issues)")
-        resend.Emails.send({
-            "from":    from_email,
-            "to":      admin_email,
-            "subject": subject,
-            "html":    result.get("report_html", "<p>Report unavailable.</p>"),
-        })
+        report_html = result.get("report_html", "<p>Report unavailable.</p>")
+
+        admin_email = os.environ.get("ADMIN_EMAIL", "")
+        if admin_email:
+            resend.Emails.send({
+                "from":    from_email,
+                "to":      admin_email,
+                "subject": subject,
+                "html":    report_html,
+            })
+
+        instructor_email = result.get("instructor_email", "")
+        if instructor_email and instructor_email != admin_email:
+            resend.Emails.send({
+                "from":    from_email,
+                "to":      instructor_email,
+                "subject": subject,
+                "html":    report_html,
+            })
     except Exception:
         pass
 

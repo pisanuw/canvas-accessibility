@@ -43,6 +43,15 @@
     </div>
   </div>
 
+  <!-- Progress bar -->
+  <div class="progress-wrap" id="progress-wrap">
+    <div class="progress-section-label" id="progress-section-label">Initializing…</div>
+    <div class="progress-bar-track">
+      <div class="progress-bar-fill" id="progress-bar-fill" style="width:0%"></div>
+    </div>
+    <div class="progress-fraction" id="progress-fraction"></div>
+  </div>
+
   <!-- Terminal output -->
   <div class="term-wrap">
     <div class="term-label">Progress</div>
@@ -74,12 +83,35 @@
     statusEl.innerHTML = html;
   }
 
+  const progressWrap     = document.getElementById('progress-wrap');
+  const progressLabel    = document.getElementById('progress-section-label');
+  const progressFill     = document.getElementById('progress-bar-fill');
+  const progressFraction = document.getElementById('progress-fraction');
+
+  function setProgress(current, total) {
+    const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+    progressFill.style.width = pct + '%';
+    progressFraction.textContent = current + ' / ' + total;
+  }
+
   const es = new EventSource('/stream');
 
   es.onmessage = function (e) {
     const msg = JSON.parse(e.data);
 
     if (msg.type === 'heartbeat') return;
+
+    if (msg.type === 'section') {
+      progressLabel.textContent = msg.label;
+      progressFill.style.width = '0%';
+      progressFraction.textContent = '';
+      return;
+    }
+
+    if (msg.type === 'progress') {
+      setProgress(msg.current, msg.total);
+      return;
+    }
 
     if (msg.type === 'log') {
       const line = msg.message;
@@ -104,6 +136,9 @@
     else if (msg.type === 'done') {
       append('<span class="t-good">\n&#10003; All fixes applied. Loading report…\n</span>');
       setStatus('&#10003; Done');
+      progressLabel.textContent = 'Complete';
+      progressFill.style.width = '100%';
+      progressFraction.textContent = '';
       es.close();
       setTimeout(function () { window.location.href = '/report'; }, 1800);
     }

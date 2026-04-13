@@ -256,7 +256,7 @@ input:focus {
   line-height: 1.75;
   scroll-behavior: smooth;
 }
-.terminal .t-sep  { color: var(--term-sep); }
+.terminal .t-sep  { color: var(--term-sep); font-weight: 700; font-size: .9rem; }
 .terminal .t-dim  { color: var(--term-dim); }
 .terminal .t-good { color: #7ec8e3; }
 .terminal .t-err  { color: #ff6b6b; }
@@ -463,6 +463,126 @@ input:focus {
   font-size: .7rem; padding: 1px 6px; border-radius: 10px;
   font-weight: 600;
 }
+
+/* ── Progress bar (running page) ─────────────────────────────────────────────*/
+.progress-wrap {
+  margin-bottom: 14px;
+}
+.progress-section-label {
+  font-size: .82rem;
+  font-weight: 600;
+  color: #aaa;
+  font-family: "SF Mono", "Consolas", monospace;
+  margin-bottom: 6px;
+  letter-spacing: .02em;
+  min-height: 1.2em;
+}
+.progress-bar-track {
+  background: #1e2030;
+  border-radius: 4px;
+  height: 10px;
+  overflow: hidden;
+  border: 1px solid #2a2a3e;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4b2e83, #7c6fe0);
+  border-radius: 4px;
+  transition: width .3s ease;
+}
+.progress-fraction {
+  font-size: .75rem;
+  color: #666;
+  font-family: monospace;
+  margin-top: 4px;
+  text-align: right;
+  min-height: 1em;
+}
+
+/* ── Collapsible report cards ─────────────────────────────────────────────────*/
+.report-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+.report-card.rc-changed { border-left: 4px solid var(--success); }
+.report-card.rc-error   { border-left: 4px solid var(--error); }
+.report-card.rc-clean   { border-left: 4px solid var(--border); }
+
+.rc-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  background: var(--bg);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: .9rem;
+  font-family: inherit;
+  color: var(--text);
+}
+.rc-header:hover { background: var(--gold-light); }
+.report-card.rc-changed .rc-header { background: #f0fdf4; }
+.report-card.rc-changed .rc-header:hover { background: #dcfce7; }
+.report-card.rc-error .rc-header   { background: #fff5f5; }
+.report-card.rc-error .rc-header:hover { background: #fee2e2; }
+
+.rc-title  { font-weight: 600; flex: 1; }
+.rc-badges { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.rc-stat   { font-size: .78rem; color: var(--text-muted); }
+.rc-chevron { font-size: .85rem; color: var(--text-muted); flex-shrink: 0; margin-left: 4px; }
+
+.badge-blue { background: #eff6ff; color: #1d4ed8; }
+
+.rc-body {
+  padding: 0 14px 12px;
+  border-top: 1px solid var(--border);
+}
+.rc-empty {
+  font-size: .85rem;
+  color: var(--text-muted);
+  padding: 10px 0;
+  margin: 0;
+}
+
+/* Detail table inside collapsible card */
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .85rem;
+  margin-top: 8px;
+}
+.detail-table th {
+  text-align: left;
+  padding: 7px 10px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  font-size: .75rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.detail-table td { padding: 7px 10px; border-bottom: 1px dotted var(--border); vertical-align: top; }
+.detail-table tr:last-child td { border-bottom: none; }
+.detail-table tr.dr-updated { background: #fafff8; }
+.detail-table tr.dr-error   { background: #fff8f8; }
+.detail-table tr.dr-clean   { opacity: .7; }
+
+.dt-name { font-family: "SF Mono", "Consolas", monospace; font-size: .8rem; max-width: 260px; word-break: break-all; }
+.dt-status { white-space: nowrap; }
+.dt-changes { color: var(--text-muted); }
+.dt-err-msg { color: var(--error); font-size: .82rem; }
+
+.change-list {
+  margin: 0;
+  padding-left: 16px;
+  line-height: 1.7;
+}
+.change-list li { color: var(--text-muted); }
 
 /* ── Login ───────────────────────────────────────────────────────────────────*/
 .login-wrap {

@@ -90,42 +90,86 @@
       </div>
     {% endif %}
 
-    <!-- Fix breakdown table -->
+    <!-- Fix breakdown — collapsible cards per content type -->
     <div class="section-title">Fixes Applied by Content Type</div>
-    <table class="fix-table">
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Items Scanned</th>
-          <th>Changes Made</th>
-          <th>Files Updated</th>
-          <th>Errors</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in result.summary %}
-        <tr>
-          <td><strong>{{ row.label }}</strong></td>
-          <td>{{ row.items }}</td>
-          <td>
-            {% if row.changes > 0 %}
-              <span class="badge badge-green">{{ row.changes }}</span>
-            {% else %}
-              <span class="badge badge-gray">0</span>
-            {% endif %}
-          </td>
-          <td>{{ row.updated }}</td>
-          <td>
-            {% if row.errors > 0 %}
-              <span class="badge badge-red">{{ row.errors }}</span>
-            {% else %}
-              —
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    {% for row in result.summary %}
+    {% set card_id = "card-" ~ loop.index %}
+    <div class="report-card {% if row.errors > 0 %}rc-error{% elif row.changes > 0 %}rc-changed{% else %}rc-clean{% endif %}">
+      <button class="rc-header" onclick="toggleCard('{{ card_id }}')"
+              aria-expanded="{{ 'true' if row.changes > 0 or row.errors > 0 else 'false' }}"
+              aria-controls="{{ card_id }}">
+        <span class="rc-title">{{ row.label }}</span>
+        <span class="rc-badges">
+          <span class="rc-stat">{{ row.items }} scanned</span>
+          {% if row.changes > 0 %}
+            <span class="badge badge-green">{{ row.changes }} change{{ 's' if row.changes != 1 }}</span>
+          {% else %}
+            <span class="badge badge-gray">no changes</span>
+          {% endif %}
+          {% if row.updated > 0 %}
+            <span class="badge badge-blue">{{ row.updated }} updated</span>
+          {% endif %}
+          {% if row.errors > 0 %}
+            <span class="badge badge-red">{{ row.errors }} error{{ 's' if row.errors != 1 }}</span>
+          {% endif %}
+        </span>
+        <span class="rc-chevron" id="{{ card_id }}-chevron">{{ '▾' if row.changes > 0 or row.errors > 0 else '▸' }}</span>
+      </button>
+      <div class="rc-body" id="{{ card_id }}"
+           style="{{ '' if row.changes > 0 or row.errors > 0 else 'display:none' }}">
+        {% if row.detail %}
+        <table class="detail-table">
+          <thead>
+            <tr><th>Name</th><th>Status</th><th>Changes</th></tr>
+          </thead>
+          <tbody>
+            {% for item in row.detail %}
+            <tr class="{{ 'dr-error' if item.error else 'dr-updated' if item.updated else 'dr-clean' }}">
+              <td class="dt-name">{{ item.name }}</td>
+              <td class="dt-status">
+                {% if item.error %}
+                  <span class="badge badge-red">Error</span>
+                {% elif item.updated %}
+                  <span class="badge badge-green">Updated</span>
+                {% else %}
+                  <span class="badge badge-gray">No changes</span>
+                {% endif %}
+              </td>
+              <td class="dt-changes">
+                {% if item.error %}
+                  <span class="dt-err-msg">{{ item.error }}</span>
+                {% elif item.changes %}
+                  <ul class="change-list">
+                    {% for ch in item.changes %}
+                    <li>{{ ch }}</li>
+                    {% endfor %}
+                  </ul>
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <p class="rc-empty">No items processed.</p>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+
+    <script>
+    function toggleCard(id) {
+      const body    = document.getElementById(id);
+      const chevron = document.getElementById(id + '-chevron');
+      const btn     = body.previousElementSibling;
+      const open    = body.style.display !== 'none';
+      body.style.display    = open ? 'none' : '';
+      chevron.textContent   = open ? '▸' : '▾';
+      btn.setAttribute('aria-expanded', String(!open));
+    }
+    </script>
 
     <!-- What's not fixed notice -->
     {% if not result.get('ally_async') and result.after > 0 %}
