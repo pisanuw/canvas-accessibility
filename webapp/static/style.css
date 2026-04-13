@@ -681,6 +681,38 @@ footer {
 }
 footer a { color: var(--purple); text-decoration: none; }
 
+/* ── Dry-run toggle ──────────────────────────────────────────────────────────*/
+.dry-run-row {
+  margin: 16px 0 0;
+  padding: 12px 16px;
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  border-radius: var(--radius);
+}
+.dry-run-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  font-size: .9rem;
+  color: #1e40af;
+}
+.dry-run-label input[type="checkbox"] {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--purple);
+  flex-shrink: 0;
+}
+
+/* ── Ally breadcrumb link ────────────────────────────────────────────────────*/
+.ally-link {
+  color: var(--purple);
+  text-decoration: none;
+  font-weight: 500;
+}
+.ally-link:hover { text-decoration: underline; }
+
 /* ── Utilities ───────────────────────────────────────────────────────────────*/
 .mt-8  { margin-top: 8px;  }
 .mt-16 { margin-top: 16px; }

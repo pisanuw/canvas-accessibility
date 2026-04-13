@@ -216,7 +216,14 @@
       </div>
     </div>
 
-    <div class="btn-group" style="margin-top:20px;">
+    <div class="dry-run-row">
+      <label class="dry-run-label">
+        <input type="checkbox" name="dry_run" value="1" id="dry-run-cb">
+        <span>Preview only — show what would change without uploading anything</span>
+      </label>
+    </div>
+
+    <div class="btn-group" style="margin-top:16px;">
       <a href="{{ url_for('credentials') }}" class="btn btn-secondary btn-back">&larr; Back</a>
       <button type="submit" id="start-btn" class="btn btn-primary">Start Fixes &rarr;</button>
     </div>

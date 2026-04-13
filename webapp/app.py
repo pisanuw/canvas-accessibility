@@ -291,8 +291,9 @@ def confirm():
     if "job_id" not in session:
         return redirect(url_for("credentials"))
     if request.method == "POST":
-        session["confirm_done"] = True
-        session["selected_fixes"] = request.form.getlist("fix")
+        session["confirm_done"]    = True
+        session["selected_fixes"]  = request.form.getlist("fix")
+        session["dry_run"]         = bool(request.form.get("dry_run"))
         return redirect(url_for("running"))
     has_ai = bool(session.get("anthropic_key", ""))
     return render_template("confirm.html",
@@ -365,6 +366,7 @@ def stream():
     ally_client_id   = session.get("ally_client_id", 5)
     ally_cookie      = session.get("ally_cookie", "")
     ally_score_pct   = session.get("ally_score_pct", None)
+    dry_run          = session.get("dry_run", False)
     selected_fixes = session.get("selected_fixes", [])
 
     if not all([job_id, course_id, canvas_token]):
@@ -450,16 +452,19 @@ def stream():
 
                 # ── HTML page + assignment fixes ───────────────────────────
                 html_fixes = [v for k, v in _HTML_FIX_MAP.items() if k in sel]
+                if dry_run:
+                    msg_q.put(("log", "── PREVIEW MODE — no changes will be uploaded ──"))
+
                 if html_fixes:
                     from fixes.fix_html_pages import (fix_course_pages,
                                                        fix_course_assignments,
                                                        fix_course_syllabus)
                     msg_q.put(("log", "── HTML Page Fixes ──────────────────────"))
-                    fix_results["html"] = fix_course_pages(client, course_id, html_fixes)
+                    fix_results["html"] = fix_course_pages(client, course_id, html_fixes, dry_run=dry_run)
                     msg_q.put(("log", "── Syllabus Fixes ───────────────────────"))
-                    fix_results["syllabus"] = fix_course_syllabus(client, course_id, html_fixes)
+                    fix_results["syllabus"] = fix_course_syllabus(client, course_id, html_fixes, dry_run=dry_run)
                     msg_q.put(("log", "── Assignment Description Fixes ─────────"))
-                    fix_results["assignments"] = fix_course_assignments(client, course_id, html_fixes)
+                    fix_results["assignments"] = fix_course_assignments(client, course_id, html_fixes, dry_run=dry_run)
                 else:
                     fix_results["html"] = []
                     fix_results["syllabus"] = []
@@ -470,7 +475,7 @@ def stream():
                 if word_fixes:
                     msg_q.put(("log", "── Word Document Fixes ──────────────────"))
                     from fixes.fix_word_docs import fix_course_word_files
-                    fix_results["word"] = fix_course_word_files(client, course_id, word_fixes)
+                    fix_results["word"] = fix_course_word_files(client, course_id, word_fixes, dry_run=dry_run)
                 else:
                     fix_results["word"] = []
 
@@ -484,14 +489,14 @@ def stream():
                         msg_q.put(("log", "── Image Fixes (Ally) ───────────────────"))
                         fix_results["images"] = fix_course_image_files(
                             client, _ally_token, _ally_cookie,
-                            _ally_client_id, course_id)
+                            _ally_client_id, course_id, dry_run=dry_run)
                     else:
                         fix_results["images"] = []
                     if run_seizure:
                         msg_q.put(("log", "── Image Seizure Replacements ───────────"))
                         fix_results["seizure"] = fix_course_seizure_images(
                             client, _ally_token, _ally_cookie,
-                            _ally_client_id, course_id)
+                            _ally_client_id, course_id, dry_run=dry_run)
                     else:
                         fix_results["seizure"] = []
                 elif (run_decorative or run_seizure) and not _ally_token:
@@ -506,7 +511,7 @@ def stream():
                 if "pdf_metadata_all" in sel:
                     msg_q.put(("log", "── PDF Metadata Fixes ───────────────────"))
                     from fixes.fix_pdf_metadata import fix_course_pdfs
-                    fix_results["pdf_meta"] = fix_course_pdfs(client, course_id, ["all"])
+                    fix_results["pdf_meta"] = fix_course_pdfs(client, course_id, ["all"], dry_run=dry_run)
                 else:
                     fix_results["pdf_meta"] = []
 
@@ -516,7 +521,7 @@ def stream():
                     msg_q.put(("log", "── PDF Content Fixes ────────────────────"))
                     from fixes.fix_pdf_content import fix_course_pdf_content
                     fix_results["pdf_content"] = fix_course_pdf_content(
-                        client, course_id, pdf_content_fixes)
+                        client, course_id, pdf_content_fixes, dry_run=dry_run)
                 else:
                     fix_results["pdf_content"] = []
 
@@ -525,7 +530,7 @@ def stream():
                 if pptx_fixes:
                     msg_q.put(("log", "── PowerPoint Fixes ─────────────────────"))
                     from fixes.fix_pptx_files import fix_course_pptx_files
-                    fix_results["pptx"] = fix_course_pptx_files(client, course_id, pptx_fixes)
+                    fix_results["pptx"] = fix_course_pptx_files(client, course_id, pptx_fixes, dry_run=dry_run)
                 else:
                     fix_results["pptx"] = []
 
@@ -602,6 +607,7 @@ def stream():
                         "course_id":        course_id,
                         "course_code":      course_code,
                         "has_ai":           has_ai,
+                        "dry_run":          dry_run,
                         "instructor_email": instructor_email,
                         "ally_score_pct":   ally_score_pct,
                         "summary":          _summarize(data["fix_results"]),

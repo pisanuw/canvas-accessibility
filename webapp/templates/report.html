@@ -32,6 +32,12 @@
   <!-- Success result -->
   <div class="card">
     <h2>Accessibility Report</h2>
+    {% if result.get('dry_run') %}
+    <div class="notice notice-warn" style="background:#eff6ff; border-color:#93c5fd; color:#1e40af;">
+      <strong>&#128064; Preview mode</strong> — fixes were calculated but <strong>nothing was uploaded</strong> to Canvas.
+      To apply changes, go back and uncheck "Preview only".
+    </div>
+    {% endif %}
     <p class="desc">
       <strong>{{ result.course_name }}</strong> &nbsp;&middot;&nbsp; Course {{ result.course_id }}
       &nbsp;&middot;&nbsp; Completed {{ result.completed_at }}
@@ -245,6 +251,16 @@
     </div>
     {% endif %}
 
+    <!-- LibraryReference note — always shown so instructors understand the Ally dashboard -->
+    <div class="section-title">About the Ally Dashboard</div>
+    <div class="notice" style="background:#f0f9ff; border-color:#bae6fd; font-size:.87rem;">
+      <strong>LibraryReference issues</strong> — If you see a large number of
+      "LibraryReference" issues in the Ally dashboard, <strong>these are not real
+      accessibility defects</strong>. They are Ally&rsquo;s own library-integration
+      promotional flag and are excluded from the issue counts shown in this report.
+      No action is needed for LibraryReference items.
+    </div>
+
     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:24px;">
       <a href="{{ url_for('rerun') }}" class="btn btn-secondary">Fix Other Issues for This Course</a>
       <a href="{{ url_for('restart') }}" class="btn btn-secondary">Fix Another Course</a>
@@ -252,6 +268,13 @@
     <div style="text-align:center; margin-top:12px;">
       <a href="{{ url_for('report_download', job_id=result.job_id) }}"
          class="btn btn-primary" download>&#8595; Download Full Report</a>
+    </div>
+    <div style="text-align:center; margin-top:16px; font-size:.85rem;">
+      <a href="https://canvas.uw.edu/courses/{{ result.course_id }}/external_tools/148172"
+         target="_blank" rel="noopener" class="ally-link">
+        &#8599; View updated Ally score for this course
+        <span style="color:var(--text-muted); font-size:.78rem;">(scores update ~1–2 hrs after fixes are uploaded)</span>
+      </a>
     </div>
   </div>
 {% endif %}

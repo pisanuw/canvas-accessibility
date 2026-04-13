@@ -11,10 +11,12 @@ Usage:
   python3 fix_all.py --course-id 1492292 --output fix_report.json
 
 Fix types and their order:
-  html   — Canvas page HTML (image_alt, table_headers, heading_order,
-                              empty_heading, lists, links)
-  word   — Word .docx files (image_alt, table_headers, no_language, heading_order)
-  pptx   — PowerPoint .pptx (image_alt, slide_title, reading_order, no_language)
+  html   — Canvas pages, syllabus, and assignment descriptions
+           (empty_heading, heading_order, headings_presence, headings_start_at_one,
+            table_headers, table_captions, lists, color_contrast, image_alt/placeholder, links)
+  word   — Word .docx files (headings_presence, headings_start_at_one, heading_order,
+                              table_headers, no_language, image_alt/placeholder)
+  pptx   — PowerPoint .pptx (image_alt, slide_title, reading_order, no_language, links)
   pdf    — PDF metadata     (no_title, no_language)
 
 AI-assisted fixes (image_alt, slide_title, links) require:
@@ -34,23 +36,46 @@ from fixes.canvas_client import CanvasClient
 
 
 def run_html_fixes(client: CanvasClient, course_id: int,
-                   dry_run: bool, skip_ai: bool) -> list[dict]:
-    from fixes.fix_html_pages import fix_course_pages
-    fixes = ["empty_heading", "heading_order", "table_headers", "lists"]
+                   dry_run: bool, skip_ai: bool) -> dict:
+    from fixes.fix_html_pages import (fix_course_pages, fix_course_syllabus,
+                                       fix_course_assignments)
+    fixes = [
+        "empty_heading", "heading_order", "headings_presence",
+        "headings_start_at_one", "table_headers", "table_captions",
+        "lists", "color_contrast", "html_meta",
+    ]
     if not skip_ai:
         fixes += ["image_alt", "links"]
+    else:
+        fixes += ["image_alt_placeholder"]
+
     print(f"\n{'='*60}")
     print(f"HTML Page Fixes  ({', '.join(fixes)})")
     print(f"{'='*60}")
-    return fix_course_pages(client, course_id, fixes, dry_run=dry_run)
+    pages = fix_course_pages(client, course_id, fixes, dry_run=dry_run)
+
+    print(f"\n{'='*60}")
+    print(f"Syllabus Fixes")
+    print(f"{'='*60}")
+    syllabus = fix_course_syllabus(client, course_id, fixes, dry_run=dry_run)
+
+    print(f"\n{'='*60}")
+    print(f"Assignment Description Fixes")
+    print(f"{'='*60}")
+    assignments = fix_course_assignments(client, course_id, fixes, dry_run=dry_run)
+
+    return {"html": pages, "syllabus": syllabus, "assignments": assignments}
 
 
 def run_word_fixes(client: CanvasClient, course_id: int,
                    dry_run: bool, skip_ai: bool) -> list[dict]:
     from fixes.fix_word_docs import fix_course_word_files
-    fixes = ["heading_order", "table_headers", "no_language"]
+    fixes = ["headings_presence", "headings_start_at_one", "heading_order",
+             "table_headers", "no_language"]
     if not skip_ai:
         fixes += ["image_alt"]
+    else:
+        fixes += ["image_alt_placeholder"]
     print(f"\n{'='*60}")
     print(f"Word Document Fixes  ({', '.join(fixes)})")
     print(f"{'='*60}")
@@ -60,7 +85,7 @@ def run_word_fixes(client: CanvasClient, course_id: int,
 def run_pptx_fixes(client: CanvasClient, course_id: int,
                    dry_run: bool, skip_ai: bool) -> list[dict]:
     from fixes.fix_pptx_files import fix_course_pptx_files
-    fixes = ["reading_order", "no_language"]
+    fixes = ["reading_order", "no_language", "links"]
     if not skip_ai:
         fixes += ["image_alt", "slide_title"]
     print(f"\n{'='*60}")
@@ -134,7 +159,8 @@ Examples:
     all_results = {}
 
     if "html" in types:
-        all_results["html"] = run_html_fixes(client, course_id, dry_run, skip_ai)
+        html_group = run_html_fixes(client, course_id, dry_run, skip_ai)
+        all_results.update(html_group)  # adds html, syllabus, assignments keys
 
     if "word" in types:
         all_results["word"] = run_word_fixes(client, course_id, dry_run, skip_ai)
