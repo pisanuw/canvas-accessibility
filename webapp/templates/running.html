@@ -36,6 +36,10 @@
       <div class="c-val" id="after-count">—</div>
     </div>
     <div class="counter-box">
+      <div class="c-label">Elapsed</div>
+      <div class="c-val" id="elapsed-time" style="font-family:'SF Mono',monospace;font-size:1.2rem;">0:00</div>
+    </div>
+    <div class="counter-box">
       <div class="c-label">Status</div>
       <div class="c-val" id="status-text" style="font-size:.95rem; padding-top:4px;">
         <span class="spinner"></span> Running
@@ -54,7 +58,10 @@
 
   <!-- Terminal output -->
   <div class="term-wrap">
-    <div class="term-label">Progress</div>
+    <div class="term-label-row">
+      <span class="term-label">Progress</span>
+      <button class="btn-copy" id="copy-btn" onclick="copyTerminal()" title="Copy output to clipboard">&#128203; Copy</button>
+    </div>
     <div class="terminal" id="terminal">Connecting…&#10;</div>
   </div>
 
@@ -73,6 +80,16 @@
   const statusEl   = document.getElementById('status-text');
   const errBanner  = document.getElementById('error-banner');
   const errText    = document.getElementById('error-text');
+  const elapsedEl  = document.getElementById('elapsed-time');
+
+  // Elapsed timer
+  const startTime = Date.now();
+  let timerInterval = setInterval(function () {
+    const secs = Math.floor((Date.now() - startTime) / 1000);
+    const m = Math.floor(secs / 60);
+    const s = String(secs % 60).padStart(2, '0');
+    elapsedEl.textContent = m + ':' + s;
+  }, 1000);
 
   function append(html) {
     terminal.insertAdjacentHTML('beforeend', html);
@@ -134,6 +151,7 @@
     }
 
     else if (msg.type === 'done') {
+      clearInterval(timerInterval);
       append('<span class="t-good">\n&#10003; All fixes applied. Loading report…\n</span>');
       setStatus('&#10003; Done');
       progressLabel.textContent = 'Complete';
@@ -144,6 +162,7 @@
     }
 
     else if (msg.type === 'error') {
+      clearInterval(timerInterval);
       append('<span class="t-err">\n&#10007; ERROR: ' + escHtml(msg.message) + '\n</span>');
       setStatus('&#10007; Error');
       errText.textContent = msg.message;
@@ -164,6 +183,15 @@
 
   function escHtml(s) {
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function copyTerminal() {
+    const text = terminal.innerText;
+    navigator.clipboard.writeText(text).then(function () {
+      const btn = document.getElementById('copy-btn');
+      btn.textContent = '✓ Copied';
+      setTimeout(function () { btn.innerHTML = '&#128203; Copy'; }, 2000);
+    });
   }
 })();
 </script>

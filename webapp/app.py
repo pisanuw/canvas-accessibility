@@ -176,6 +176,31 @@ def admin():
 
 # ── Routes: Wizard steps ──────────────────────────────────────────────────────
 
+@app.route("/api/course-search")
+@require_auth
+def api_course_search():
+    """Search the user's Canvas courses by name. Requires ?q= and ?token= params."""
+    q     = request.args.get("q", "").strip()
+    token = request.args.get("token", "").strip()
+    if not token or len(q) < 2:
+        return jsonify([])
+    try:
+        from fixes.canvas_client import CanvasClient
+        client = CanvasClient(token=token)
+        courses = client.get_all_pages("/courses", {
+            "enrollment_type": "teacher",
+            "search_term": q,
+            "per_page": 20,
+        })
+        results = [
+            {"id": c["id"], "name": c.get("name", ""), "code": c.get("course_code", "")}
+            for c in courses if not c.get("access_restricted_by_date")
+        ]
+        return jsonify(results)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/course", methods=["GET", "POST"])
 @require_auth
 def course():
@@ -183,6 +208,7 @@ def course():
     if request.method == "POST":
         import re
         url = request.form.get("course_url", "").strip()
+        search_token = request.form.get("search_token", "").strip()
         if not url.startswith("https://canvas.uw.edu/courses/"):
             error = "Course URL must start with https://canvas.uw.edu/courses/"
         else:
@@ -192,6 +218,9 @@ def course():
             else:
                 session["course_id"] = int(match.group(1))
                 session["course_url"] = url
+                # Pre-fill canvas token from search if provided (user can change it on step 3)
+                if search_token:
+                    session["canvas_token"] = search_token
                 for key in ("job_id", "backup_confirmed", "confirm_done",
                             "ally_token", "ally_client_id", "ally_cookie",
                             "ally_before_count", "course_code"):
@@ -295,6 +324,7 @@ def confirm_scan():
         session["ally_client_id"]    = ally_client_id
         session["ally_cookie"]       = ally_cookie
         session["ally_before_count"] = issue_count
+        session["ally_score_pct"]    = score_pct
 
         return jsonify({
             "issue_count": issue_count,
@@ -334,6 +364,7 @@ def stream():
     ally_token       = session.get("ally_token", "")
     ally_client_id   = session.get("ally_client_id", 5)
     ally_cookie      = session.get("ally_cookie", "")
+    ally_score_pct   = session.get("ally_score_pct", None)
     selected_fixes = session.get("selected_fixes", [])
 
     if not all([job_id, course_id, canvas_token]):
@@ -572,6 +603,7 @@ def stream():
                         "course_code":      course_code,
                         "has_ai":           has_ai,
                         "instructor_email": instructor_email,
+                        "ally_score_pct":   ally_score_pct,
                         "summary":          _summarize(data["fix_results"]),
                         "completed_at":     completed_at,
                         "job_id":           job_id,

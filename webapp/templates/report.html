@@ -38,8 +38,8 @@
       {% if result.has_ai %}&nbsp;&middot;&nbsp; AI-assisted{% endif %}
     </p>
 
-    <!-- Before / After scores -->
-    <div class="score-grid">
+    <!-- Before / After / Ally score cards -->
+    <div class="score-grid {% if result.get('ally_score_pct') is not none %}score-grid-3{% endif %}">
       <div class="score-card sc-before">
         <div class="sc-label">Issues Before</div>
         <div class="sc-num">{{ result.before }}</div>
@@ -55,6 +55,13 @@
       <div class="score-card sc-after">
         <div class="sc-label">Issues After</div>
         <div class="sc-num">{{ result.after }}</div>
+      </div>
+      {% endif %}
+      {% if result.get('ally_score_pct') is not none %}
+      <div class="score-card sc-ally">
+        <div class="sc-label">Ally Score (Before)</div>
+        <div class="sc-num">{{ result.ally_score_pct }}%</div>
+        <div class="sc-sub">Expected to rise after Ally rescans</div>
       </div>
       {% endif %}
     </div>
@@ -91,10 +98,24 @@
     {% endif %}
 
     <!-- Fix breakdown — collapsible cards per content type -->
-    <div class="section-title">Fixes Applied by Content Type</div>
+    <div class="rc-toolbar">
+      <span class="section-title" style="margin:0">Fixes Applied by Content Type</span>
+      <div class="rc-toolbar-right">
+        <div class="rc-filters" role="group" aria-label="Filter cards">
+          <button class="btn-filter active" data-filter="all"     onclick="filterCards('all')">All</button>
+          <button class="btn-filter"        data-filter="changed" onclick="filterCards('changed')">Changed</button>
+          <button class="btn-filter"        data-filter="error"   onclick="filterCards('error')">Errors Only</button>
+        </div>
+        <div class="rc-expand-btns">
+          <button class="btn-sm btn-secondary" onclick="expandAll()">Expand All</button>
+          <button class="btn-sm btn-secondary" onclick="collapseAll()">Collapse All</button>
+        </div>
+      </div>
+    </div>
     {% for row in result.summary %}
     {% set card_id = "card-" ~ loop.index %}
-    <div class="report-card {% if row.errors > 0 %}rc-error{% elif row.changes > 0 %}rc-changed{% else %}rc-clean{% endif %}">
+    {% set card_status = 'error' if row.errors > 0 else 'changed' if row.changes > 0 else 'clean' %}
+    <div class="report-card rc-{{ card_status }}" data-status="{{ card_status }}">
       <button class="rc-header" onclick="toggleCard('{{ card_id }}')"
               aria-expanded="{{ 'true' if row.changes > 0 or row.errors > 0 else 'false' }}"
               aria-controls="{{ card_id }}">
@@ -168,6 +189,42 @@
       body.style.display    = open ? 'none' : '';
       chevron.textContent   = open ? '▸' : '▾';
       btn.setAttribute('aria-expanded', String(!open));
+    }
+
+    function expandAll() {
+      document.querySelectorAll('.report-card:not([style*="display:none"]) .rc-body').forEach(function (body) {
+        const id      = body.id;
+        const chevron = document.getElementById(id + '-chevron');
+        const btn     = body.previousElementSibling;
+        body.style.display = '';
+        if (chevron) chevron.textContent = '▾';
+        if (btn)     btn.setAttribute('aria-expanded', 'true');
+      });
+    }
+
+    function collapseAll() {
+      document.querySelectorAll('.report-card:not([style*="display:none"]) .rc-body').forEach(function (body) {
+        const id      = body.id;
+        const chevron = document.getElementById(id + '-chevron');
+        const btn     = body.previousElementSibling;
+        body.style.display = 'none';
+        if (chevron) chevron.textContent = '▸';
+        if (btn)     btn.setAttribute('aria-expanded', 'false');
+      });
+    }
+
+    function filterCards(filter) {
+      // Update button active state
+      document.querySelectorAll('.btn-filter').forEach(function (b) {
+        b.classList.toggle('active', b.dataset.filter === filter);
+      });
+      document.querySelectorAll('.report-card').forEach(function (card) {
+        const status = card.dataset.status; // 'changed', 'error', 'clean'
+        let show = filter === 'all'
+                || (filter === 'changed' && (status === 'changed' || status === 'error'))
+                || (filter === 'error'   && status === 'error');
+        card.style.display = show ? '' : 'none';
+      });
     }
     </script>
 

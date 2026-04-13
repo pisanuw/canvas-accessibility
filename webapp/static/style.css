@@ -464,6 +464,71 @@ input:focus {
   font-weight: 600;
 }
 
+/* ── Term label row (with copy button) ──────────────────────────────────────*/
+.term-label-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 6px;
+}
+.btn-copy {
+  background: #1e2030; color: #888; border: 1px solid #2a2a3e;
+  border-radius: 4px; padding: 3px 10px; font-size: .75rem;
+  cursor: pointer; font-family: inherit;
+}
+.btn-copy:hover { color: #fff; border-color: #7c6fe0; }
+
+/* ── Report toolbar (expand/collapse + filter) ───────────────────────────────*/
+.rc-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 10px;
+  margin-bottom: 10px;
+}
+.rc-toolbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.rc-filters { display: flex; gap: 0; }
+.btn-filter {
+  padding: 4px 12px; font-size: .8rem; font-weight: 600; font-family: inherit;
+  background: var(--white); color: var(--text-muted);
+  border: 1.5px solid var(--border); cursor: pointer;
+}
+.btn-filter:first-child { border-radius: 6px 0 0 6px; }
+.btn-filter:last-child  { border-radius: 0 6px 6px 0; margin-left: -1px; }
+.btn-filter:not(:first-child):not(:last-child) { margin-left: -1px; }
+.btn-filter.active { background: var(--purple); color: #fff; border-color: var(--purple); z-index: 1; }
+.btn-filter:hover:not(.active) { background: var(--gold-light); }
+.rc-expand-btns { display: flex; gap: 6px; }
+
+/* ── Course search ───────────────────────────────────────────────────────────*/
+.search-wrap { position: relative; }
+.search-dropdown {
+  display: none;
+  position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
+  background: var(--white); border: 1.5px solid var(--purple);
+  border-top: none; border-radius: 0 0 6px 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.12); max-height: 280px; overflow-y: auto;
+}
+.search-dd-item {
+  display: flex; flex-direction: column; padding: 10px 14px;
+  cursor: pointer; border-bottom: 1px solid var(--border);
+}
+.search-dd-item:last-child { border-bottom: none; }
+.search-dd-item:hover { background: var(--gold-light); }
+.dd-name { font-size: .9rem; font-weight: 600; color: var(--text); }
+.dd-code { font-size: .78rem; color: var(--text-muted); margin-top: 2px; }
+.search-dd-empty { padding: 12px 14px; color: var(--text-muted); font-size: .88rem; }
+.search-divider {
+  display: flex; align-items: center; gap: 10px; margin: 16px 0;
+  font-size: .78rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.search-divider::before, .search-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* ── Ally score card ─────────────────────────────────────────────────────────*/
+.score-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+.score-card.sc-ally { background: #f5f3ff; border-color: #c4b5fd; }
+.score-card.sc-ally .sc-num { color: #5b21b6; }
+.sc-sub { font-size: .72rem; color: var(--text-muted); margin-top: 6px; }
+
 /* ── Progress bar (running page) ─────────────────────────────────────────────*/
 .progress-wrap {
   margin-bottom: 14px;
