@@ -70,15 +70,16 @@ canvas-accessibility/
 
 | Step | Route | Description |
 |---|---|---|
-| 1 | `/course` | Enter Canvas URL → extract course ID; shows fix list and backup download |
+| 1 | `/course` | Enter Canvas URL or search by name; extract course ID; shows fix list and backup download |
 | 2 | `/backup` | Checkbox confirm backup exists |
-| 3 | `/credentials` | Canvas token + optional Anthropic key; validates token live |
-| 4 | `/confirm` (GET) | Ally issue count scan + per-fix checkbox selector |
-| 4 | `/confirm` (POST) | Saves `selected_fixes` list to session, redirects to `/running` |
-| 5 | `/running` | SSE stream of fix progress via `/stream` |
-| 6 | `/report` | Summary table; "Fix Other Issues", "Fix Another Course", "Download Full Report" |
+| 3 | `/credentials` | Canvas token + optional Anthropic key + optional instructor email; validates token live |
+| 4 | `/confirm` (GET) | Ally issue count scan + per-fix checkbox selector + dry-run toggle |
+| 4 | `/confirm` (POST) | Saves `selected_fixes`, `dry_run` flag to session; redirects to `/running` |
+| 5 | `/running` | SSE stream of fix progress via `/stream`; shows progress bar, elapsed timer, copy button |
+| 6 | `/report` | Collapsible per-type cards; Before/After/Ally score; filter/expand controls; Ally breadcrumb |
 
 Additional routes:
+- `/api/course-search` — Canvas course search by name for Step 1 dropdown (requires `?q=` and `?token=`)
 - `/rerun` — clears job state, keeps course/credentials, returns to confirm (fix selector)
 - `/links` + `/links-stream` — post-run broken link check with its own SSE stream
 - `/report/download/<job_id>` — downloadable HTML report
@@ -100,9 +101,26 @@ ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 Login is blocked if any credential env var is empty (no default credentials).
 `FLASK_SECRET_KEY` must be set in Render env (or `.env` locally).
 
+### SSE event types (`/stream`)
+
+The `_Capture` class intercepts stdout from `_run()` and emits typed messages onto a queue. The SSE generator forwards them as named events:
+
+| Event | Payload | Consumer |
+|---|---|---|
+| `log` | `text` — raw terminal line | Appended to `.terminal` div |
+| `section` | `{"label": str}` | Resets progress bar to 0%; updates section label |
+| `progress` | `{"current": int, "total": int}` | Fills progress bar; updates fraction display |
+| `before` | `{"count": int}` | Stores issue count before fixes |
+| `after` | `{"count": int, "async": bool}` | Stores issue count after fixes |
+| `done` | result JSON | Stores report; hides spinner; stops timer |
+| `error` | `{"message": str}` | Shows error notice; stops timer |
+| `heartbeat` | _(none)_ | Keeps connection alive (sent every 15 s) |
+
+`_Capture.write()` detects `(i/n)` patterns in log lines and emits `progress` events; detects `──` or `--` separator lines and emits `section` events.
+
 ### Fix pipeline in `_run()` (background thread)
 
-`selected_fixes` (a list of checkbox values) is read from session and used to build per-module fix lists via the `_HTML_FIX_MAP`, `_WORD_FIX_MAP`, `_PDF_CONTENT_FIX_MAP`, `_PPTX_FIX_MAP` dicts in `app.py`.
+`selected_fixes` (a list of checkbox values) is read from session and used to build per-module fix lists via the `_HTML_FIX_MAP`, `_WORD_FIX_MAP`, `_PDF_CONTENT_FIX_MAP`, `_PPTX_FIX_MAP` dicts in `app.py`. `dry_run` is read from session and passed to every fix orchestrator call.
 
 1. Ally auto-login — reuses `ally_token/ally_client_id/ally_cookie` cached from confirm-scan
 2. Before-scan via `ally_api.get_course_report()` — LibraryReference issues subtracted from total to match Canvas Ally UI
@@ -118,7 +136,33 @@ Login is blocked if any credential env var is empty (no default credentials).
 12. PowerPoint fixes
 13. After-scan note — Ally re-scores asynchronously
 
-After run: generates `report_html`, appends to `admin_log.json`, sends Resend email.
+After run: generates `report_html`, appends to `admin_log.json`, sends Resend email to admin and (if provided) to `instructor_email`.
+
+### `_summarize()` — report row structure
+
+Each row in `result.summary` has:
+
+```python
+{
+  "key":     str,           # e.g. "html", "word"
+  "label":   str,           # human-readable label
+  "items":   int,           # total items scanned
+  "changes": int,           # total individual change strings
+  "updated": int,           # items where updated=True
+  "errors":  int,           # items where error is set
+  "detail":  [              # per-item breakdown for collapsible table
+    {
+      "name":    str,       # page title or filename
+      "changes": list[str], # list of change description strings
+      "updated": bool,
+      "error":   str,       # empty string if no error
+    },
+    ...
+  ],
+}
+```
+
+`name` is resolved via `r.get("page") or r.get("file") or "—"` to handle both HTML (uses `"page"` key) and file-based modules (use `"file"` key).
 
 ### Fix selector (Step 4 — confirm page)
 
@@ -279,7 +323,7 @@ python3 canvas-backup.py download --out-dir /path
 
 ### `fix_all.py`
 
-CLI orchestrator. Runs HTML, Word, PPTX, and PDF metadata fixes in order. Does not run PDF content fixes (run directly via `fixes/fix_pdf_content.py`). Does not yet cover syllabus or assignment descriptions.
+CLI orchestrator. Runs HTML (pages, syllabus, assignment descriptions), Word, PPTX, and PDF metadata fixes in order. Does not run PDF content fixes (run directly via `fixes/fix_pdf_content.py`). Supports `--dry-run`, `--no-ai`, and `--types html,word,pptx,pdf` flags. Saves a JSON report after each run.
 
 ---
 

@@ -40,14 +40,39 @@ You need a **Canvas personal access token**:
 4. Purpose: `canvas-accessibility`, leave expiry blank
 5. Click **Generate Token** — copy it immediately (shown only once)
 
-### Fix selector
+### Course search
 
-On the Confirm step, a hierarchical checklist lets you choose exactly which fixes to run:
+On Step 1, you can search for your course by name instead of pasting a URL. Enter your Canvas token in the search box and start typing — matching courses appear in a dropdown.
+
+### Credentials (Step 3)
+
+In addition to the Canvas token and optional Anthropic API key, you can enter an **instructor email address**. After the run completes, a notification with the issue counts and fix summary is sent to both the admin email and the instructor email.
+
+### Fix selector (Step 4)
+
+A hierarchical checklist lets you choose exactly which fixes to run:
 
 - All standard fixes are **checked by default** — Canvas pages, syllabus, assignment descriptions, Word docs, PDF metadata, PowerPoint, and Ally image fixes.
 - **Slow fixes are unchecked by default** (amber): PDF content structure, OCR for scanned PDFs, and broken link checking. Enable them individually if needed.
 - AI-dependent fixes (image alt text, link labels) are **greyed out** if no Anthropic key was provided; a placeholder alt text option is shown instead.
 - Use **Select All** / **Clear All** to reset, or check/uncheck individual items.
+- Check **Preview only** to calculate fixes without uploading anything to Canvas. The report shows what would have changed.
+
+### Running (Step 5)
+
+The progress page shows:
+- A **progress bar** that advances file-by-file within each content type section
+- An **elapsed timer** so you know how long the run has been going
+- A **Copy** button to copy the full terminal log to your clipboard
+
+### Report (Step 6)
+
+- **Before / After / Ally score** cards at the top
+- **Collapsible sections** for each content type — sections with changes start expanded, clean sections start collapsed
+- **Filter buttons**: All · Changed · Errors Only
+- Per-file detail table inside each section showing what changed (or the error message)
+- A link to the **Ally dashboard** to check the updated score after Ally rescans (~1–2 hours)
+- **LibraryReference** items are excluded from counts and explained in an "About the Ally Dashboard" notice
 
 ---
 

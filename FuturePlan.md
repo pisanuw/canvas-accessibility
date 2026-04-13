@@ -74,24 +74,6 @@ Currently hardcoded to `canvas.uw.edu` and UW's Ally LTI tool ID (`148172`) and 
 
 ---
 
-## 8. Update `fix_all.py` CLI to Match Web App
-
-The CLI orchestrator (`fix_all.py`) does not yet cover:
-- Syllabus body (`fix_course_syllabus`)
-- Assignment descriptions (`fix_course_assignments`)
-- `headings_start_at_one` for HTML pages
-- `image_alt_placeholder` for HTML pages
-
-These were added to the web app pipeline but `fix_all.py` was not updated. The CLI is used for large courses / batch runs and should stay in sync.
-
----
-
-## 9. LibraryReference Explanation in Report
-
-Ally's `LibraryReference` issue (3,358 occurrences) is not a real accessibility defect — it's Ally's own library-integration promotional flag. The report should prominently explain this to instructors so they don't waste time on it.
-
----
-
-## 10. Canvas Instances Other Than UW
+## 8. Canvas Instances Other Than UW
 
 `ally_api.py`'s `auto_login()` is specific to the UW Canvas/Ally LTI setup. Generalizing it (configurable OIDC endpoints, client IDs) would make the tool broadly useful.
