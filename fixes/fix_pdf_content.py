@@ -506,7 +506,6 @@ def fix_pdf_content_file(client: CanvasClient, course_id: int, file_info: dict,
                 or file_info.get("filename", "document.pdf"))
     folder_id = file_info.get("folder_id")
 
-    print(f"  Processing: {filename}")
     pdf_bytes = client.download_url(file_info["url"])
     all_changes = []
     all_fixes = "all" in fixes
@@ -597,8 +596,11 @@ def fix_course_pdf_content(client: CanvasClient, course_id: int,
     ocr_count = 0
     ocr_cap_warned = False
     results = []
+    total = len(files)
 
-    for f in files:
+    for i, f in enumerate(files, 1):
+        fname = f.get("display_name") or f.get("filename", "?")
+        print(f"  Processing: {fname} ({i}/{total})")
         # Enforce OCR cap to stay within Render's 520s HTTP timeout
         if wants_ocr and ocr_count >= OCR_CAP:
             if not ocr_cap_warned:
@@ -617,8 +619,8 @@ def fix_course_pdf_content(client: CanvasClient, course_id: int,
             results.append(r)
             time.sleep(0.3)
         except Exception as exc:
-            print(f"  ERROR on '{f.get('filename', '?')}': {exc}")
-            results.append({"file": f.get("filename", "?"), "error": str(exc)})
+            print(f"  ERROR on '{fname}': {exc}")
+            results.append({"file": fname, "error": str(exc)})
 
     return results
 

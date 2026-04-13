@@ -727,14 +727,17 @@ def fix_course_pages(client: CanvasClient, course_id: int,
         print(f"Found {len(pages)} pages in course {course_id}")
 
     results = []
-    for page in pages:
+    total = len(pages)
+    for i, page in enumerate(pages, 1):
+        title = page.get("title", page.get("url", "?"))
+        print(f"  Processing: {title} ({i}/{total})")
         try:
             r = fix_page(client, course_id, page, fixes, dry_run)
             results.append(r)
             time.sleep(0.3)  # gentle rate limiting
         except Exception as e:
-            print(f"  ERROR on page '{page.get('title', '?')}': {e}")
-            results.append({"page": page.get("title", "?"), "error": str(e)})
+            print(f"  ERROR on page '{title}': {e}")
+            results.append({"page": title, "error": str(e)})
 
     return results
 
@@ -827,12 +830,13 @@ def fix_course_assignments(client: CanvasClient, course_id: int,
     print(f"Found {len(assignments)} assignment(s) with descriptions in course {course_id}")
 
     results = []
-    for a in assignments:
+    total = len(assignments)
+    for i, a in enumerate(assignments, 1):
         assignment_id = a["id"]
         title = a.get("name", f"Assignment {assignment_id}")
         body = a.get("description") or ""
 
-        print(f"  Processing assignment: {title}")
+        print(f"  Processing: {title} ({i}/{total})")
         all_changes = []
         all_fixes = "all" in assignment_fixes
 

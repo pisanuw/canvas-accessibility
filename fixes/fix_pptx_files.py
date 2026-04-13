@@ -265,7 +265,6 @@ def fix_pptx_file(client: CanvasClient, course_id: int, file_info: dict,
     filename = file_info.get("display_name") or file_info.get("filename", "presentation.pptx")
     folder_id = file_info.get("folder_id")
 
-    print(f"  Processing: {filename}")
     pptx_bytes = client.download_url(file_info["url"])
     all_changes = []
     all_fixes = "all" in fixes
@@ -322,14 +321,17 @@ def fix_course_pptx_files(client: CanvasClient, course_id: int,
         print(f"Found {len(files)} PowerPoint file(s) in course {course_id}")
 
     results = []
-    for f in files:
+    total = len(files)
+    for i, f in enumerate(files, 1):
+        fname = f.get("display_name") or f.get("filename", "?")
+        print(f"  Processing: {fname} ({i}/{total})")
         try:
             r = fix_pptx_file(client, course_id, f, fixes, dry_run)
             results.append(r)
             time.sleep(0.5)
         except Exception as e:
-            print(f"  ERROR on '{f.get('filename', '?')}': {e}")
-            results.append({"file": f.get("filename", "?"), "error": str(e)})
+            print(f"  ERROR on '{fname}': {e}")
+            results.append({"file": fname, "error": str(e)})
 
     return results
 
