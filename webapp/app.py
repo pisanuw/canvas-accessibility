@@ -12,6 +12,7 @@ import threading
 from datetime import datetime
 from functools import wraps
 from pathlib import Path
+from urllib.parse import urlparse
 
 from flask import (Flask, Response, jsonify, redirect, render_template,
                    request, send_file, session, stream_with_context, url_for)
@@ -28,6 +29,29 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
 )
+
+
+def _normalize_base_url(url: str) -> str:
+    value = (url or "").strip().rstrip("/")
+    parsed = urlparse(value)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return ""
+    return f"{parsed.scheme}://{parsed.netloc}"
+
+
+CANVAS_BASE_URL = _normalize_base_url(
+    os.environ.get("CANVAS_BASE_URL", "https://canvas.uw.edu")
+) or "https://canvas.uw.edu"
+
+_allowed_canvas_bases_raw = os.environ.get("CANVAS_ALLOWED_BASE_URLS", "")
+_allowed_canvas_bases = [
+    _normalize_base_url(v)
+    for v in _allowed_canvas_bases_raw.split(",")
+]
+CANVAS_ALLOWED_BASE_URLS = tuple(
+    dict.fromkeys([v for v in _allowed_canvas_bases if v] or [CANVAS_BASE_URL])
+)
+ALLY_TOOL_ID = int(os.environ.get("ALLY_TOOL_ID", "148172"))
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
 
@@ -205,15 +229,20 @@ def api_course_search():
 @require_auth
 def course():
     error = None
+    course_prefix = f"{CANVAS_BASE_URL}/courses/"
     if request.method == "POST":
         import re
         url = request.form.get("course_url", "").strip()
-        if not url.startswith("https://canvas.uw.edu/courses/"):
-            error = "Course URL must start with https://canvas.uw.edu/courses/"
+        parsed = urlparse(url)
+        submitted_base = _normalize_base_url(f"{parsed.scheme}://{parsed.netloc}")
+
+        if submitted_base not in CANVAS_ALLOWED_BASE_URLS:
+            allowed = ", ".join(CANVAS_ALLOWED_BASE_URLS)
+            error = f"Course URL host is not allowed. Allowed Canvas base URL(s): {allowed}"
         else:
-            match = re.search(r"/courses/(\d+)", url)
+            match = re.match(r"^/courses/(\d+)(?:/|$)", parsed.path or "")
             if not match:
-                error = "Could not find a course ID in the URL."
+                error = f"Course URL must look like {course_prefix}<course_id>"
             else:
                 session["course_id"]  = int(match.group(1))
                 session["course_url"] = url
@@ -224,7 +253,8 @@ def course():
                     session.pop(key, None)
                 return redirect(url_for("backup"))
     return render_template("course.html", error=error,
-                           course_url=session.get("course_url", ""))
+                           course_url=session.get("course_url", ""),
+                           canvas_course_prefix=course_prefix)
 
 
 @app.route("/backup", methods=["GET", "POST"])
@@ -648,7 +678,12 @@ def report():
     result = _job_results[job_id]
     if result.get("running"):
         return redirect(url_for("running"))
-    return render_template("report.html", result=result)
+    return render_template(
+        "report.html",
+        result=result,
+        canvas_base_url=CANVAS_BASE_URL,
+        ally_tool_id=ALLY_TOOL_ID,
+    )
 
 
 @app.route("/report/download/<job_id>")
@@ -1043,7 +1078,7 @@ def _generate_html_report(result: dict) -> str:
             f'<span style="font-size:.9rem;color:#374151;">'
             f'{total_changes} change(s) were made across your course files. '
             f'Ally typically updates scores within 1&ndash;2 hours. '
-            f'Check the <a href="https://canvas.uw.edu/courses/{result.get("course_id")}/external_tools/148172"'
+            f'Check the <a href="{CANVAS_BASE_URL}/courses/{result.get("course_id")}/external_tools/{ALLY_TOOL_ID}"'
             f' target="_blank">Ally dashboard</a> later to confirm the improvement.</span></div>'
         )
     elif pct > 0:

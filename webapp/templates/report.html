@@ -80,7 +80,7 @@
         {{ total_changes }} change(s) were made across your course files.
         Ally typically updates scores within 1–2 hours.
         Check the
-        <a href="https://canvas.uw.edu/courses/{{ result.course_id }}/external_tools/148172"
+          <a href="{{ canvas_base_url }}/courses/{{ result.course_id }}/external_tools/{{ ally_tool_id }}"
            target="_blank" rel="noopener">Ally dashboard</a>
         after that to see the updated issue count.
       </div>
@@ -270,7 +270,7 @@
          class="btn btn-primary" download>&#8595; Download Full Report</a>
     </div>
     <div style="text-align:center; margin-top:16px; font-size:.85rem;">
-      <a href="https://canvas.uw.edu/courses/{{ result.course_id }}/external_tools/148172"
+      <a href="{{ canvas_base_url }}/courses/{{ result.course_id }}/external_tools/{{ ally_tool_id }}"
          target="_blank" rel="noopener" class="ally-link">
         &#8599; View updated Ally score for this course
         <span style="color:var(--text-muted); font-size:.78rem;">(scores update ~1–2 hrs after fixes are uploaded)</span>

@@ -15,7 +15,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
 
-BASE_URL = "https://canvas.uw.edu"
+BASE_URL = os.environ.get("CANVAS_BASE_URL", "https://canvas.uw.edu").rstrip("/")
 TOKEN_FILE = Path(__file__).parent.parent / "canvas-token.txt"
 
 

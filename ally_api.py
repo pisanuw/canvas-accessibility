@@ -32,6 +32,7 @@ import base64
 import http.cookiejar
 import html as html_module
 import json
+import os
 import re
 import sys
 import time
@@ -41,9 +42,9 @@ from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-CANVAS_BASE  = "https://canvas.uw.edu"
+CANVAS_BASE  = os.environ.get("CANVAS_BASE_URL", "https://canvas.uw.edu").rstrip("/")
 ALLY_BASE    = "https://prod.ally.ac"
-ALLY_TOOL_ID = 148172          # Ally LTI tool ID at UW
+ALLY_TOOL_ID = int(os.environ.get("ALLY_TOOL_ID", "148172"))
 TOKEN_FILE   = Path(__file__).parent / "ally-token.txt"
 CANVAS_TOKEN_FILE = Path(__file__).parent / "canvas-token.txt"
 USER_AGENT   = (

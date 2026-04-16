@@ -25,6 +25,7 @@ Usage (CLI):
 """
 
 import argparse
+import os
 import re
 import sys
 import time
@@ -35,7 +36,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from fixes.canvas_client import CanvasClient
 from fixes.ai_client import describe_image, generate_link_label
 
-BASE_URL = "https://canvas.uw.edu"
+BASE_URL = os.environ.get("CANVAS_BASE_URL", "https://canvas.uw.edu").rstrip("/")
 NON_DESCRIPTIVE_LINKS = {"here", "click here", "read more", "link", "more",
                           "this", "url", "this link", "this page", "this site"}
 

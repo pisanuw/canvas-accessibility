@@ -115,10 +115,10 @@
     <div class="form-group">
       <label for="course_url">Canvas Course URL <span style="color:var(--error)">*</span></label>
       <input type="url" id="course_url" name="course_url"
-             placeholder="https://canvas.uw.edu/courses/1492292"
+             placeholder="{{ canvas_course_prefix }}1492292"
              value="{{ course_url }}" required autofocus>
       <div class="hint">
-        Must start with <strong>https://canvas.uw.edu/courses/</strong>.
+        Must look like <strong>{{ canvas_course_prefix }}1234567</strong>.
         Open your course in Canvas and copy the URL from the address bar.
       </div>
     </div>
